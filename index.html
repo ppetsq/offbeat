@@ -34,13 +34,13 @@
         }
 
         .header-content {
-    display: flex;
-    flex-direction: row-reverse; /* Reverse the order to push logo to right */
-    align-items: center;
-    gap: 15px;
-    max-width: 650px; /* Match the width of file-list for alignment */
-    margin: auto;
-}
+            display: flex;
+            flex-direction: row-reverse; /* Reverse the order to push logo to right */
+            align-items: center;
+            gap: 15px;
+            max-width: 650px; /* Match the width of file-list for alignment */
+            margin: auto;
+        }
 
         .logo {
             width: 100px;
@@ -58,16 +58,21 @@
         }
 
         .text-content {
-    flex-grow: 1;
-    text-align: left;
-}
+            flex-grow: 1;
+            text-align: left;
+        }
 
         h1 {
             font-size: 2rem;
             font-weight: 500;
+            line-height: 1.1;
             letter-spacing: 0.5px;
             margin: 0 0 3px 0;
             color: #ffffff;
+        }
+
+        @media (max-width: 600px) {
+            .h1 { font-size: 1rem; line-height: 1.05; }
         }
 
         p.subtitle {
@@ -123,29 +128,39 @@
         }
 
         .episode-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 20px;
-    color: inherit;
-    text-decoration: none;
-    width: 100%;
-    box-sizing: border-box;
-}
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            color: inherit;
+            text-decoration: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
 
-.right-elements {
-    display: flex;
-    align-items: center;
-}
+        .right-elements {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Added gap between elements */
+        }
 
         .file-info {
             flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .file-number-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .file-number {
             font-weight: 600;
             color: #8B9D83;
-            display: block;
+            display: inline-block;
             margin-bottom: 2px;
         }
 
@@ -157,8 +172,12 @@
         .file-icon {
             color: #8B9D83;
             font-size: 1.2rem;
-            margin-left: 10px;
             flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .file-featured {
@@ -166,18 +185,30 @@
         }
 
         .feat-tag {
-    position: static; /* Remove absolute positioning */
-    background-color: rgba(139, 157, 131, 0.15);
-    color: #8B9D83;
-    font-size: 0.65rem;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    border: 1px solid rgba(139, 157, 131, 0.3);
-    margin-right: 10px; /* Add space between tag and icon */
-}
+            background-color: rgba(139, 157, 131, 0.15);
+            color: #8B9D83;
+            font-size: 0.6rem; /* Smaller font size */
+            padding: 2px 6px; /* Smaller padding */
+            border-radius: 3px; /* Slightly smaller radius */
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border: 1px solid rgba(139, 157, 131, 0.3);
+            display: inline-flex;
+            align-items: center;
+            margin-left: 6px; /* Add some space between title and tag */
+            height: 14px; /* Control the height */
+            line-height: 1;
+        }
+
+        /* Time indicator */
+        .time-indicator {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            min-width: 70px;
+            text-align: right;
+            display: none; /* Hide by default */
+        }
 
         /* Footer */
         footer {
@@ -187,31 +218,6 @@
             text-align: center;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 600px) {
-            body {
-                padding: 30px 15px;
-            }
-            
-            .file-list {
-                max-width: 100%;
-            }
-            
-            .header-content {
-                flex-direction: row;
-                align-items: center;
-                gap: 15px;
-            }
-            
-            .logo {
-                width: 100px;
-                height: 100px;
-            }
-            
-            h1 {
-                font-size: 1.8rem;
-            }
-        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
@@ -220,12 +226,12 @@
     <div class="container">
         <header>
             <div class="header-content">
-                <div class="logo">
-                    <img src="https://vault.petsq.net/offbeat-promo.jpg" alt="Offbeat">
-                </div>
+<a href="https://petsq.net" target="_blank" rel="noopener noreferrer" class="logo">
+    <img src="https://vault.petsq.net/offbeat-promo.jpg" alt="Offbeat">
+</a>
                 <div class="text-content">
                     <h1>offbeat archive</h1>
-                    <p class="subtitle">live every other wednesday 18:00 - 20:00 (cet) </p>
+                    <p class="subtitle">live every other wednesday<br> 18:00 - 20:00 (cet) </p>
                     <a href="https://radio.worm.org" class="radio-link">radio.worm.org</a>
                 </div>
             </div>
@@ -234,13 +240,16 @@
         <section>
             <ul class="file-list">
                 <li class="file-item file-featured">
-                    <a href="https://vault.petsq.net/20250226_OFFBEAT_9_feat_screamsoda.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20250226_OFFBEAT_9_feat_screamsoda.mp3" class="episode-link" data-track="OFFBEAT #9">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #9</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #9</span>
+                                <span class="feat-tag" style="display: none;">feat</span>
+                            </div>
                             <span class="file-date">26.02.2025 feat. screamsoda</span>
                         </div>
                         <div class="right-elements">
-                            <div class="feat-tag">feat</div>
+                            <div class="time-indicator">00:00 / 00:00</div>
                             <div class="file-icon">
                                 <i class="fa-solid fa-play"></i>
                             </div>
@@ -248,24 +257,32 @@
                     </a>
                 </li>
                 <li class="file-item">
-                    <a href="https://vault.petsq.net/20250212_OFFBEAT_8.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20250212_OFFBEAT_8.mp3" class="episode-link" data-track="OFFBEAT #8">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #8</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #8</span>
+                            </div>
                             <span class="file-date">12.02.2025</span>
                         </div>
-                        <div class="file-icon">
-                            <i class="fa-solid fa-play"></i>
+                        <div class="right-elements">
+                            <div class="time-indicator">00:00 / 00:00</div>
+                            <div class="file-icon">
+                                <i class="fa-solid fa-play"></i>
+                            </div>
                         </div>
                     </a>
                 </li>
                 <li class="file-item file-featured">
-                    <a href="https://vault.petsq.net/20250129_OFFBEAT_7_feat_klankarbeit.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20250129_OFFBEAT_7_feat_klankarbeit.mp3" class="episode-link" data-track="OFFBEAT #7">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #7</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #7</span>
+                                <span class="feat-tag" style="display: none;">feat</span>
+                            </div>
                             <span class="file-date">29.01.2025 feat. klankarbeit</span>
                         </div>
                         <div class="right-elements">
-                            <div class="feat-tag">feat</div>
+                            <div class="time-indicator">00:00 / 00:00</div>
                             <div class="file-icon">
                                 <i class="fa-solid fa-play"></i>
                             </div>
@@ -273,57 +290,82 @@
                     </a>
                 </li>
                 <li class="file-item">
-                    <a href="https://vault.petsq.net/20250115_OFFBEAT_6.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20250115_OFFBEAT_6.mp3" class="episode-link" data-track="OFFBEAT #6">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #6</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #6</span>
+                            </div>
                             <span class="file-date">15.01.2025</span>
                         </div>
-                        <div class="file-icon">
-                            <i class="fa-solid fa-play"></i>
+                        <div class="right-elements">
+                            <div class="time-indicator">00:00 / 00:00</div>
+                            <div class="file-icon">
+                                <i class="fa-solid fa-play"></i>
+                            </div>
                         </div>
                     </a>
                 </li>
                 <li class="file-item">
-                    <a href="https://vault.petsq.net/20241127_OFFBEAT_4.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20241127_OFFBEAT_4.mp3" class="episode-link" data-track="OFFBEAT #4">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #4</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #4</span>
+                            </div>
                             <span class="file-date">27.11.2024</span>
                         </div>
-                        <div class="file-icon">
-                            <i class="fa-solid fa-play"></i>
+                        <div class="right-elements">
+                            <div class="time-indicator">00:00 / 00:00</div>
+                            <div class="file-icon">
+                                <i class="fa-solid fa-play"></i>
+                            </div>
                         </div>
                     </a>
                 </li>
                 <li class="file-item">
-                    <a href="https://vault.petsq.net/20241023_OFFBEAT_3.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20241023_OFFBEAT_3.mp3" class="episode-link" data-track="OFFBEAT #3">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #3</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #3</span>
+                            </div>
                             <span class="file-date">23.10.2024</span>
                         </div>
-                        <div class="file-icon">
-                            <i class="fa-solid fa-play"></i>
+                        <div class="right-elements">
+                            <div class="time-indicator">00:00 / 00:00</div>
+                            <div class="file-icon">
+                                <i class="fa-solid fa-play"></i>
+                            </div>
                         </div>
                     </a>
                 </li>
                 <li class="file-item">
-                    <a href="https://vault.petsq.net/20241009_OFFBEAT_2.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20241009_OFFBEAT_2.mp3" class="episode-link" data-track="OFFBEAT #2">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #2</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #2</span>
+                            </div>
                             <span class="file-date">09.10.2024</span>
                         </div>
-                        <div class="file-icon">
-                            <i class="fa-solid fa-play"></i>
+                        <div class="right-elements">
+                            <div class="time-indicator">00:00 / 00:00</div>
+                            <div class="file-icon">
+                                <i class="fa-solid fa-play"></i>
+                            </div>
                         </div>
                     </a>
                 </li>
                 <li class="file-item">
-                    <a href="https://vault.petsq.net/20240925_OFFBEAT_1.mp3" class="episode-link">
+                    <a href="https://vault.petsq.net/20240925_OFFBEAT_1.mp3" class="episode-link" data-track="OFFBEAT #1">
                         <div class="file-info">
-                            <span class="file-number">OFFBEAT #1</span>
+                            <div class="file-number-container">
+                                <span class="file-number">OFFBEAT #1</span>
+                            </div>
                             <span class="file-date">25.09.2024</span>
                         </div>
-                        <div class="file-icon">
-                            <i class="fa-solid fa-play"></i>
+                        <div class="right-elements">
+                            <div class="time-indicator">00:00 / 00:00</div>
+                            <div class="file-icon">
+                                <i class="fa-solid fa-play"></i>
+                            </div>
                         </div>
                     </a>
                 </li>
@@ -334,5 +376,121 @@
             <p>&copy; 2025 offbeat.petsq.net</p>
         </footer>
     </div>
+    <audio id="audioPlayer" preload="none"></audio>
+
+    <script>
+document.addEventListener("DOMContentLoaded", function() {
+    const audioPlayer = document.getElementById("audioPlayer");
+    let currentPlayingItem = null;
+
+    function formatTime(seconds) {
+        if (isNaN(seconds)) return "00:00";
+        seconds = Math.floor(seconds);
+        const minutes = Math.floor(seconds / 60);
+        seconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function resetAllItems() {
+        document.querySelectorAll(".file-item").forEach(item => {
+            const iconElement = item.querySelector(".file-icon svg");
+            const timeIndicator = item.querySelector(".time-indicator");
+
+            if (iconElement) {
+                iconElement.setAttribute("data-icon", "play");
+                console.log("Reset icon to play");
+            }
+
+            if (timeIndicator) {
+                timeIndicator.style.display = "none";
+                timeIndicator.textContent = "00:00 / 00:00";
+            }
+        });
+        currentPlayingItem = null;
+    }
+
+    function playTrack(item) {
+        const link = item.querySelector(".episode-link");
+        const src = link.getAttribute("href");
+        const iconElement = item.querySelector(".file-icon svg");
+        const timeIndicator = item.querySelector(".time-indicator");
+
+        if (currentPlayingItem === item) {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                console.log("Play audio");
+            } else {
+                audioPlayer.pause();
+                console.log("Pause audio");
+            }
+            updateIcon(item);
+            return;
+        }
+
+        resetAllItems();
+        audioPlayer.src = src;
+        audioPlayer.play();
+        console.log("Play new track");
+        currentPlayingItem = item;
+        updateIcon(item);
+        if (timeIndicator) {
+            timeIndicator.style.display = "block";
+        }
+    }
+
+    function updateIcon(item) {
+        if (!item) return;
+        const iconElement = item.querySelector(".file-icon svg");
+        if (!iconElement) return;
+
+        if (audioPlayer.paused) {
+            iconElement.setAttribute("data-icon", "play");
+            console.log("Update icon to play");
+        } else {
+            iconElement.setAttribute("data-icon", "pause");
+            console.log("Update icon to pause");
+        }
+    }
+
+    function updateTime() {
+        if (!currentPlayingItem || audioPlayer.paused) return;
+        const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
+        if (!timeIndicator) return;
+        const currentTime = formatTime(audioPlayer.currentTime);
+        const duration = formatTime(audioPlayer.duration);
+        timeIndicator.textContent = `${currentTime} / ${duration}`;
+    }
+
+    document.querySelectorAll('.file-featured').forEach(item => {
+        const mobileTag = item.querySelector('.file-number-container .feat-tag');
+        if (mobileTag) mobileTag.style.display = 'inline-flex';
+        const rightTag = item.querySelector('.right-elements .feat-tag');
+        if (rightTag) rightTag.style.display = 'none';
+    });
+
+    document.querySelectorAll(".file-item").forEach(item => {
+        item.addEventListener("click", function(e) {
+            e.preventDefault();
+            playTrack(this);
+        });
+    });
+
+    audioPlayer.addEventListener("timeupdate", updateTime);
+    audioPlayer.addEventListener("ended", resetAllItems);
+    audioPlayer.addEventListener("loadedmetadata", updateTime);
+
+    audioPlayer.addEventListener("play", function() {
+        if (currentPlayingItem) {
+            updateIcon(currentPlayingItem);
+        }
+    });
+
+    audioPlayer.addEventListener("pause", function() {
+        if (currentPlayingItem) {
+            updateIcon(currentPlayingItem);
+        }
+    });
+});
+    </script>
 </body>
 </html>
