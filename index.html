@@ -114,7 +114,7 @@
             padding: 0;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease; /* Only change background color, not position */
             text-align: left;
             position: relative;
             overflow: hidden;
@@ -122,8 +122,7 @@
         }
 
         .file-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            /* Removed transform that caused rising animation */
             background-color: #181818;
         }
 
@@ -218,6 +217,88 @@
             text-align: center;
         }
 
+        /* Expanded Player Styles */
+        .expanded-player {
+            display: none;
+            padding: 0 20px 15px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .file-item.expanded .expanded-player {
+            display: block;
+        }
+
+        .progress-container {
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: rgba(139, 157, 131, 0.2);
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        .progress-filled {
+            position: absolute;
+            height: 100%;
+            background-color: #8B9D83;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .progress-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .control-btn {
+            background-color: rgba(139, 157, 131, 0.1);
+            border: none; /* Removed borders */
+            color: #8B9D83;
+            border-radius: 5px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background-color: rgba(139, 157, 131, 0.2);
+        }
+
+        .play-pause-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            padding: 0;
+        }
+
+        /* Media queries for mobile */
+        @media (max-width: 600px) {
+            .player-controls {
+                gap: 10px;
+            }
+            
+            .control-btn {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
@@ -226,9 +307,9 @@
     <div class="container">
         <header>
             <div class="header-content">
-<a href="https://petsq.net" target="_blank" rel="noopener noreferrer" class="logo">
-    <img src="https://vault.petsq.net/offbeat-promo.jpg" alt="Offbeat">
-</a>
+                <a href="https://petsq.net" target="_blank" rel="noopener noreferrer" class="logo">
+                    <img src="https://vault.petsq.net/offbeat-promo.jpg" alt="Offbeat">
+                </a>
                 <div class="text-content">
                     <h1>offbeat archive</h1>
                     <p class="subtitle">live every other wednesday<br> 18:00 - 20:00 (cet) </p>
@@ -254,7 +335,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item file-featured">
                     <a href="https://vault.petsq.net/20250226_OFFBEAT_9_feat_screamsoda.mp3" class="episode-link" data-track="OFFBEAT #9">
                         <div class="file-info">
@@ -271,7 +376,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item">
                     <a href="https://vault.petsq.net/20250212_OFFBEAT_8.mp3" class="episode-link" data-track="OFFBEAT #8">
                         <div class="file-info">
@@ -287,7 +416,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item file-featured">
                     <a href="https://vault.petsq.net/20250129_OFFBEAT_7_feat_klankarbeit.mp3" class="episode-link" data-track="OFFBEAT #7">
                         <div class="file-info">
@@ -304,7 +457,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item">
                     <a href="https://vault.petsq.net/20250115_OFFBEAT_6.mp3" class="episode-link" data-track="OFFBEAT #6">
                         <div class="file-info">
@@ -320,7 +497,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item">
                     <a href="https://vault.petsq.net/20241127_OFFBEAT_4.mp3" class="episode-link" data-track="OFFBEAT #4">
                         <div class="file-info">
@@ -336,7 +537,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item">
                     <a href="https://vault.petsq.net/20241023_OFFBEAT_3.mp3" class="episode-link" data-track="OFFBEAT #3">
                         <div class="file-info">
@@ -352,7 +577,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item">
                     <a href="https://vault.petsq.net/20241009_OFFBEAT_2.mp3" class="episode-link" data-track="OFFBEAT #2">
                         <div class="file-info">
@@ -368,7 +617,31 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
+                
                 <li class="file-item">
                     <a href="https://vault.petsq.net/20240925_OFFBEAT_1.mp3" class="episode-link" data-track="OFFBEAT #1">
                         <div class="file-info">
@@ -384,6 +657,29 @@
                             </div>
                         </div>
                     </a>
+                    <!-- Expanded player section -->
+                    <div class="expanded-player">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-filled"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span class="current-time">00:00</span>
+                                <span class="duration-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="player-controls">
+                            <button class="control-btn rewind-btn">
+                                -30sec
+                            </button>
+                            <button class="control-btn play-pause-btn">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <button class="control-btn forward-btn">
+                                +30sec
+                            </button>
+                        </div>
+                    </div>
                 </li>
             </ul>
         </section>
@@ -398,6 +694,7 @@
 document.addEventListener("DOMContentLoaded", function() {
     const audioPlayer = document.getElementById("audioPlayer");
     let currentPlayingItem = null;
+    const SKIP_TIME = 30; // 30 seconds (changed from 5 minutes)
 
     function formatTime(seconds) {
         if (isNaN(seconds)) return "00:00";
@@ -411,15 +708,29 @@ document.addEventListener("DOMContentLoaded", function() {
         document.querySelectorAll(".file-item").forEach(item => {
             const iconElement = item.querySelector(".file-icon svg");
             const timeIndicator = item.querySelector(".time-indicator");
+            
+            // Reset expanded state
+            item.classList.remove("expanded");
 
             if (iconElement) {
                 iconElement.setAttribute("data-icon", "play");
-                console.log("Reset icon to play");
             }
 
             if (timeIndicator) {
                 timeIndicator.style.display = "none";
                 timeIndicator.textContent = "00:00 / 00:00";
+            }
+
+            // Reset play button in expanded player
+            const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
+            if (expandedPlayBtn) {
+                expandedPlayBtn.setAttribute("data-icon", "play");
+            }
+
+            // Reset progress bar
+            const progressFilled = item.querySelector(".progress-filled");
+            if (progressFilled) {
+                progressFilled.style.width = "0%";
             }
         });
         currentPlayingItem = null;
@@ -430,24 +741,29 @@ document.addEventListener("DOMContentLoaded", function() {
         const src = link.getAttribute("href");
         const iconElement = item.querySelector(".file-icon svg");
         const timeIndicator = item.querySelector(".time-indicator");
+        const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
 
+        // If clicking on currently playing item
         if (currentPlayingItem === item) {
             if (audioPlayer.paused) {
                 audioPlayer.play();
-                console.log("Play audio");
             } else {
                 audioPlayer.pause();
-                console.log("Pause audio");
             }
             updateIcon(item);
             return;
         }
 
+        // Reset all items and set new current item
         resetAllItems();
         audioPlayer.src = src;
         audioPlayer.play();
-        console.log("Play new track");
         currentPlayingItem = item;
+        
+        // Expand the item
+        item.classList.add("expanded");
+        
+        // Update UI
         updateIcon(item);
         if (timeIndicator) {
             timeIndicator.style.display = "block";
@@ -457,26 +773,45 @@ document.addEventListener("DOMContentLoaded", function() {
     function updateIcon(item) {
         if (!item) return;
         const iconElement = item.querySelector(".file-icon svg");
-        if (!iconElement) return;
-
+        const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
+        
         if (audioPlayer.paused) {
-            iconElement.setAttribute("data-icon", "play");
-            console.log("Update icon to play");
+            if (iconElement) iconElement.setAttribute("data-icon", "play");
+            if (expandedPlayBtn) expandedPlayBtn.setAttribute("data-icon", "play");
         } else {
-            iconElement.setAttribute("data-icon", "pause");
-            console.log("Update icon to pause");
+            if (iconElement) iconElement.setAttribute("data-icon", "pause");
+            if (expandedPlayBtn) expandedPlayBtn.setAttribute("data-icon", "pause");
         }
     }
 
     function updateTime() {
-        if (!currentPlayingItem || audioPlayer.paused) return;
+        if (!currentPlayingItem) return;
+        
         const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
-        if (!timeIndicator) return;
+        const currentTimeEl = currentPlayingItem.querySelector(".current-time");
+        const durationTimeEl = currentPlayingItem.querySelector(".duration-time");
+        const progressFilled = currentPlayingItem.querySelector(".progress-filled");
+        
         const currentTime = formatTime(audioPlayer.currentTime);
         const duration = formatTime(audioPlayer.duration);
-        timeIndicator.textContent = `${currentTime} / ${duration}`;
+        
+        // Update compact display
+        if (timeIndicator) {
+            timeIndicator.textContent = `${currentTime} / ${duration}`;
+        }
+        
+        // Update expanded player display
+        if (currentTimeEl) currentTimeEl.textContent = currentTime;
+        if (durationTimeEl) durationTimeEl.textContent = duration;
+        
+        // Update progress bar
+        if (progressFilled && !isNaN(audioPlayer.duration)) {
+            const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            progressFilled.style.width = `${progressPercentage}%`;
+        }
     }
 
+    // Set up featured tags
     document.querySelectorAll('.file-featured').forEach(item => {
         const mobileTag = item.querySelector('.file-number-container .feat-tag');
         if (mobileTag) mobileTag.style.display = 'inline-flex';
@@ -484,23 +819,77 @@ document.addEventListener("DOMContentLoaded", function() {
         if (rightTag) rightTag.style.display = 'none';
     });
 
+    // Set up click handlers for list items
     document.querySelectorAll(".file-item").forEach(item => {
-        item.addEventListener("click", function(e) {
+        const episodeLink = item.querySelector(".episode-link");
+        
+        episodeLink.addEventListener("click", function(e) {
             e.preventDefault();
-            playTrack(this);
+            playTrack(item);
         });
+        
+        // Set up progress bar click handler
+        const progressBar = item.querySelector(".progress-bar");
+        if (progressBar) {
+            progressBar.addEventListener("click", function(e) {
+                if (currentPlayingItem !== item) return;
+                
+                const rect = progressBar.getBoundingClientRect();
+                const clickPosition = (e.clientX - rect.left) / rect.width;
+                audioPlayer.currentTime = clickPosition * audioPlayer.duration;
+                updateTime();
+            });
+        }
+        
+        // Set up control buttons
+        const rewindBtn = item.querySelector(".rewind-btn");
+        const forwardBtn = item.querySelector(".forward-btn");
+        const playPauseBtn = item.querySelector(".play-pause-btn");
+        
+        if (rewindBtn) {
+            rewindBtn.addEventListener("click", function(e) {
+                e.stopPropagation(); // Prevent bubbling to parent
+                if (currentPlayingItem !== item) return;
+                audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
+                updateTime();
+            });
+        }
+        
+        if (forwardBtn) {
+            forwardBtn.addEventListener("click", function(e) {
+                e.stopPropagation(); // Prevent bubbling to parent
+                if (currentPlayingItem !== item) return;
+                audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
+                updateTime();
+            });
+        }
+        
+        if (playPauseBtn) {
+            playPauseBtn.addEventListener("click", function(e) {
+                e.stopPropagation(); // Prevent bubbling to parent
+                if (currentPlayingItem !== item) {
+                    playTrack(item);
+                } else {
+                    if (audioPlayer.paused) {
+                        audioPlayer.play();
+                    } else {
+                        audioPlayer.pause();
+                    }
+                    updateIcon(item);
+                }
+            });
+        }
     });
 
+    // Audio player event listeners
     audioPlayer.addEventListener("timeupdate", updateTime);
     audioPlayer.addEventListener("ended", resetAllItems);
     audioPlayer.addEventListener("loadedmetadata", updateTime);
-
     audioPlayer.addEventListener("play", function() {
         if (currentPlayingItem) {
             updateIcon(currentPlayingItem);
         }
     });
-
     audioPlayer.addEventListener("pause", function() {
         if (currentPlayingItem) {
             updateIcon(currentPlayingItem);
