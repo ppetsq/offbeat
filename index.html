@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,16 +9,58 @@
     <meta property="og:url" content="https://offbeat.petsq.net/">
     <title>offbeat - archive</title>
     <style>
-        /* Offbeat.petsq.net - Refined Dark Design */
+        /* Offbeat.petsq.net - Refined Design */
 
         /* General Styles */
+        :root {
+            /* Dark Theme (Default) */
+            --bg-color: #050505;
+            --text-color: #e0e0e0;
+            --accent-color: #8B9D83;
+            --accent-hover: #A7C4A0;
+            --secondary-color: #121212;
+            --secondary-hover: #181818;
+            --icon-color: #8B9D83;
+            --date-color: #9ca3af;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --slider-bg: rgba(139, 157, 131, 0.2);
+            --slider-fill: #8B9D83;
+            --button-bg: rgba(139, 157, 131, 0.1);
+            --button-hover: rgba(139, 157, 131, 0.2);
+            --border-radius: 12px;
+            --toggle-knob: #8B9D83;
+            --toggle-bg: rgba(139, 157, 131, 0.2);
+            --toggle-border: rgba(139, 157, 131, 0.3);
+        }
+        
+        /* Light Theme */
+        [data-theme="light"] {
+            --bg-color: #f5f5f5;
+            --text-color: #121212;
+            --accent-color: #5A7350;
+            --accent-hover: #425540;
+            --secondary-color: #ffffff;
+            --secondary-hover: #f0f0f0;
+            --icon-color: #5A7350;
+            --date-color: #6b7280;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --slider-bg: rgba(90, 115, 80, 0.2);
+            --slider-fill: #5A7350;
+            --button-bg: rgba(90, 115, 80, 0.1);
+            --button-hover: rgba(90, 115, 80, 0.2);
+            --toggle-knob: #5A7350;
+            --toggle-bg: rgba(90, 115, 80, 0.2);
+            --toggle-border: rgba(90, 115, 80, 0.3);
+        }
+
         body {
             font-family: 'Space Grotesk', 'Inter', sans-serif;
-            background-color: #050505;
-            color: #e0e0e0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 40px 20px;
             line-height: 1.5;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         /* Container for better spacing */
@@ -68,7 +110,7 @@
             line-height: 1.1;
             letter-spacing: 0.5px;
             margin: 0 0 3px 0;
-            color: #ffffff;
+            color: var(--text-color);
         }
 
         @media (max-width: 600px) {
@@ -77,7 +119,7 @@
 
         p.subtitle {
             font-size: 0.95rem;
-            color: #9ca3af;
+            color: var(--date-color);
             margin: 0 0 4px 0;
             font-style: italic;
         }
@@ -89,13 +131,13 @@
 
         /* Links */
         a {
-            color: #8B9D83;
+            color: var(--accent-color);
             text-decoration: none;
             transition: all 0.2s ease;
         }
 
         a:hover {
-            color: #A7C4A0;
+            color: var(--accent-hover);
         }
 
         /* File List Styling */
@@ -110,9 +152,9 @@
         }
 
         .file-item {
-            background-color: #121212;
+            background-color: var(--secondary-color);
             padding: 0;
-            border-radius: 12px;
+            border-radius: var(--border-radius);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             transition: background-color 0.3s ease; /* Only change background color, not position */
             text-align: left;
@@ -123,7 +165,7 @@
 
         .file-item:hover {
             /* Removed transform that caused rising animation */
-            background-color: #181818;
+            background-color: var(--secondary-hover);
         }
 
         .episode-link {
@@ -158,18 +200,18 @@
 
         .file-number {
             font-weight: 600;
-            color: #8B9D83;
+            color: var(--accent-color);
             display: inline-block;
             margin-bottom: 2px;
         }
 
         .file-date {
             font-size: 0.85rem;
-            color: #9ca3af;
+            color: var(--date-color);
         }
 
         .file-icon {
-            color: #8B9D83;
+            color: var(--icon-color);
             font-size: 1.2rem;
             flex-shrink: 0;
             width: 20px;
@@ -185,14 +227,14 @@
 
         .feat-tag {
             background-color: rgba(139, 157, 131, 0.15);
-            color: #8B9D83;
+            color: var(--accent-color);
             font-size: 0.6rem; /* Smaller font size */
             padding: 2px 6px; /* Smaller padding */
             border-radius: 3px; /* Slightly smaller radius */
             font-weight: 500;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-            border: 1px solid rgba(139, 157, 131, 0.3);
+            border: 1px solid var(--toggle-border);
             display: inline-flex;
             align-items: center;
             margin-left: 6px; /* Add some space between title and tag */
@@ -203,7 +245,7 @@
         /* Time indicator */
         .time-indicator {
             font-size: 0.75rem;
-            color: #9ca3af;
+            color: var(--date-color);
             min-width: 70px;
             text-align: right;
             display: none; /* Hide by default */
@@ -213,7 +255,7 @@
         footer {
             margin-top: 60px;
             font-size: 0.85rem;
-            color: #6b7280;
+            color: var(--date-color);
             text-align: center;
         }
 
@@ -234,7 +276,7 @@
 
         .progress-bar {
             height: 6px;
-            background-color: rgba(139, 157, 131, 0.2);
+            background-color: var(--slider-bg);
             border-radius: 3px;
             position: relative;
             cursor: pointer;
@@ -244,7 +286,7 @@
         .progress-filled {
             position: absolute;
             height: 100%;
-            background-color: #8B9D83;
+            background-color: var(--slider-fill);
             border-radius: 3px;
             width: 0%;
             transition: width 0.1s ease;
@@ -254,19 +296,20 @@
             display: flex;
             justify-content: space-between;
             font-size: 0.75rem;
-            color: #9ca3af;
+            color: var(--date-color);
         }
 
         .player-controls {
             display: flex;
             justify-content: center;
+            align-items: center;
             gap: 20px;
         }
 
         .control-btn {
-            background-color: rgba(139, 157, 131, 0.1);
+            background-color: var(--button-bg);
             border: none; /* Removed borders */
-            color: #8B9D83;
+            color: var(--accent-color);
             border-radius: 5px;
             padding: 6px 12px;
             font-size: 0.8rem;
@@ -278,7 +321,7 @@
         }
 
         .control-btn:hover {
-            background-color: rgba(139, 157, 131, 0.2);
+            background-color: var(--button-hover);
         }
 
         .play-pause-btn {
@@ -286,6 +329,159 @@
             height: 38px;
             border-radius: 50%;
             padding: 0;
+        }
+
+        /* Theme Toggle Styles */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .theme-toggle-label {
+            font-size: 0.75rem;
+            color: var(--date-color);
+        }
+
+        .theme-toggle-slider {
+            position: relative;
+            width: 38px;
+            height: 14px;
+            background-color: var(--toggle-bg);
+            border-radius: 7px;
+            border: 1px solid var(--toggle-border);
+            cursor: pointer;
+        }
+
+        .theme-toggle-knob {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: var(--toggle-knob);
+            border-radius: 50%;
+            left: 0;
+            top: -4px;
+            transition: left 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .theme-toggle-knob {
+            left: 18px;
+        }
+        
+        /* Volume Control */
+        .volume-control {
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+            max-width: 650px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: var(--secondary-color);
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+            box-sizing: border-box;
+        }
+        
+        .volume-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--date-color);
+        }
+        
+        .volume-value {
+            font-family: 'Space Grotesk', monospace;
+        }
+        
+        .volume-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background-color: var(--slider-bg);
+            outline: none;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+        }
+        
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .volume-slider::-ms-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+        }
+        
+        /* File Item Volume Control - alternative per-item volume control */
+        .item-volume-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .item-volume-slider {
+            -webkit-appearance: none;
+            flex-grow: 1;
+            margin: 0 10px;
+            height: 4px;
+            background-color: var(--slider-bg);
+            outline: none;
+            border-radius: 2px;
+        }
+        
+        .item-volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+        }
+        
+        .item-volume-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .volume-icon {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            width: 20px;
+            text-align: center;
         }
 
         /* Media queries for mobile */
@@ -298,6 +494,12 @@
                 padding: 4px 8px;
                 font-size: 0.75rem;
             }
+            
+            .theme-toggle {
+                position: static;
+                justify-content: flex-end;
+                margin-bottom: 20px;
+            }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -305,6 +507,13 @@
 </head>
 <body>
     <div class="container">
+        <div class="theme-toggle">
+            <span class="theme-toggle-label">mode</span>
+            <div class="theme-toggle-slider">
+                <div class="theme-toggle-knob"></div>
+            </div>
+        </div>
+        
         <header>
             <div class="header-content">
                 <a href="https://petsq.net" target="_blank" rel="noopener noreferrer" class="logo">
@@ -317,6 +526,14 @@
                 </div>
             </div>
         </header>
+
+        <div class="volume-control">
+            <div class="volume-label">
+                <span>master volume</span>
+                <span class="volume-value">100%</span>
+            </div>
+            <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume">
+        </div>
 
         <section>
             <ul class="file-list">
@@ -813,9 +1030,31 @@
     <script>
 document.addEventListener("DOMContentLoaded", function() {
     const audioPlayer = document.getElementById("audioPlayer");
+    const volumeSlider = document.getElementById("masterVolume");
+    const volumeValue = document.querySelector(".volume-value");
     let currentPlayingItem = null;
-    const SKIP_TIME = 30; // 30 seconds (changed from 5 minutes)
+    const SKIP_TIME = 30; // 30 seconds
 
+    // Theme toggle functionality
+    const themeToggle = document.querySelector(".theme-toggle-slider");
+    
+    // Get theme from localStorage or default to dark
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    
+    // Toggle theme function
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        
+        document.documentElement.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+    }
+    
+    // Add click event to theme toggle
+    themeToggle.addEventListener("click", toggleTheme);
+    
+    // Format time as MM:SS
     function formatTime(seconds) {
         if (isNaN(seconds)) return "00:00";
         seconds = Math.floor(seconds);
@@ -824,6 +1063,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
+    // Reset all items to initial state
     function resetAllItems() {
         document.querySelectorAll(".file-item").forEach(item => {
             const iconElement = item.querySelector(".file-icon svg");
@@ -856,6 +1096,7 @@ document.addEventListener("DOMContentLoaded", function() {
         currentPlayingItem = null;
     }
 
+    // Play a track
     function playTrack(item) {
         const link = item.querySelector(".episode-link");
         const src = link.getAttribute("href");
@@ -880,6 +1121,9 @@ document.addEventListener("DOMContentLoaded", function() {
         audioPlayer.play();
         currentPlayingItem = item;
         
+        // Apply current volume setting
+        audioPlayer.volume = volumeSlider.value / 100;
+        
         // Expand the item
         item.classList.add("expanded");
         
@@ -890,6 +1134,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // Update play/pause icons
     function updateIcon(item) {
         if (!item) return;
         const iconElement = item.querySelector(".file-icon svg");
@@ -904,6 +1149,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // Update time display and progress bar
     function updateTime() {
         if (!currentPlayingItem) return;
         
@@ -928,6 +1174,30 @@ document.addEventListener("DOMContentLoaded", function() {
         if (progressFilled && !isNaN(audioPlayer.duration)) {
             const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
             progressFilled.style.width = `${progressPercentage}%`;
+        }
+    }
+    
+    // Handle volume change
+    volumeSlider.addEventListener("input", function() {
+        // Update volume display
+        volumeValue.textContent = `${volumeSlider.value}%`;
+        
+        // Update audio player volume
+        if (audioPlayer) {
+            audioPlayer.volume = volumeSlider.value / 100;
+        }
+        
+        // Save to localStorage
+        localStorage.setItem("volume", volumeSlider.value);
+    });
+    
+    // Load saved volume
+    const savedVolume = localStorage.getItem("volume");
+    if (savedVolume !== null) {
+        volumeSlider.value = savedVolume;
+        volumeValue.textContent = `${savedVolume}%`;
+        if (audioPlayer) {
+            audioPlayer.volume = savedVolume / 100;
         }
     }
 
@@ -1013,6 +1283,36 @@ document.addEventListener("DOMContentLoaded", function() {
     audioPlayer.addEventListener("pause", function() {
         if (currentPlayingItem) {
             updateIcon(currentPlayingItem);
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Space - toggle play/pause for current track
+        if (e.code === 'Space' && currentPlayingItem) {
+            e.preventDefault();
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+            updateIcon(currentPlayingItem);
+        }
+        
+        // Theme toggle with 'T' key
+        if (e.code === 'KeyT') {
+            toggleTheme();
+        }
+        
+        // Arrow left/right for volume control
+        if (e.code === 'ArrowUp' && volumeSlider.value < 100) {
+            volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 5);
+            volumeSlider.dispatchEvent(new Event('input'));
+        }
+        
+        if (e.code === 'ArrowDown' && volumeSlider.value > 0) {
+            volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 5);
+            volumeSlider.dispatchEvent(new Event('input'));
         }
     });
 });
