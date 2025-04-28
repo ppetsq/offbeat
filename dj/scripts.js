@@ -4,6 +4,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const volumeValue = document.querySelector(".volume-value");
     const filterSlider = document.getElementById("masterFilter");
     const knobWrapper = document.querySelector('.knob-wrapper'); // Get the knob wrapper
+    const filterToggleBtn = document.querySelector('.filter-toggle');
+    let filterActive = false; // Start with filter inactive
     let currentPlayingItem = null;
     const SKIP_TIME = 30;
 
@@ -31,10 +33,14 @@ document.addEventListener("DOMContentLoaded", function() {
             filterNode.connect(audioContext.destination);
     
             applyVolume();
-            applyAudioFilter();
+            
+            // IMPORTANT: Set filter to bypass mode initially
+            filterNode.type = 'allpass';
+            filterNode.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
+            filterNode.Q.setValueAtTime(1, audioContext.currentTime);
     
             isAudioContextInitialized = true;
-            console.log("Audio Context Initialized");
+            console.log("Audio Context Initialized with filter bypassed");
         } catch (e) {
             console.error("Web Audio API is not supported or could not be initialized.", e);
         }
@@ -176,6 +182,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // --- Filter Control ---
 
+    // Toggle filter on/off
+    function toggleFilter() {
+        filterActive = !filterActive;
+        filterToggleBtn.classList.toggle('active', filterActive);
+        
+        // If filter is turned off, set to neutral/bypass mode
+        if (!filterActive) {
+            filterNode.type = 'allpass';
+            filterNode.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
+            filterNode.Q.setValueAtTime(1, audioContext.currentTime);
+        } else {
+            // Re-apply the current filter setting if active
+            applyAudioFilter();
+        }
+    }
+
     // Function to update ONLY the visual rotation of the knob
     function updateKnobVisual(value) {
          const knobIndicator = document.querySelector('.knob-indicator');
@@ -189,6 +211,9 @@ document.addEventListener("DOMContentLoaded", function() {
     // Function to update ONLY the audio filter effect
     function applyAudioFilter() {
         if (!filterNode || !isAudioContextInitialized) return; // Don't apply if audio context not ready
+        
+        // Skip filter application if filter is not active
+        if (!filterActive) return;
 
         const value = parseInt(filterSlider.value);
         const maxFreq = audioContext.sampleRate / 2;
@@ -257,6 +282,12 @@ document.addEventListener("DOMContentLoaded", function() {
         const change = (deltaX - deltaY) * sensitivity;
 
         let newValue = Math.round(startValue + change);
+        
+        // Add snap behavior - if within 3 units of center (50), snap to 50
+        if (Math.abs(newValue - 50) < 3) {
+            newValue = 50;
+        }
+        
         // Clamp value between 0 and 100
         newValue = Math.max(0, Math.min(100, newValue));
 
@@ -387,6 +418,15 @@ document.addEventListener("DOMContentLoaded", function() {
     audioPlayer.addEventListener("pause", function() {
         if (currentPlayingItem) updateIcon(currentPlayingItem);
     });
+
+    // Event listener for filter toggle button
+    filterToggleBtn.addEventListener('click', function() {
+        resumeAudioContext();
+        toggleFilter();
+    });
+
+    // Set initial state for the button (NOT active)
+    filterToggleBtn.classList.remove('active');
 
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {

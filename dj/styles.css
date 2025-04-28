@@ -20,6 +20,7 @@
     --toggle-knob: #8B9D83;
     --toggle-bg: rgba(139, 157, 131, 0.2);
     --toggle-border: rgba(139, 157, 131, 0.3);
+    --center-marker: rgba(139, 157, 131, 0.5); /* Subtle center marker color */
 }
 
 /* Light Theme */
@@ -40,6 +41,7 @@
     --toggle-knob: #5A7350;
     --toggle-bg: rgba(90, 115, 80, 0.2);
     --toggle-border: rgba(90, 115, 80, 0.3);
+    --center-marker: rgba(90, 115, 80, 0.5); /* Subtle center marker color */
 }
 
 body {
@@ -64,55 +66,54 @@ header {
     text-align: left;
 }
 
-/* --- Modified Header Content Layout --- */
+/* Header Content Layout */
 .header-content {
     display: flex;
-    /* Removed row-reverse */
-    align-items: center; /* Vertically align items */
-    justify-content: flex-start; /* Align items to the start */
-    gap: 25px; /* Adjust gap between logo, knob, text */
-    max-width: 650px; /* Match the width of file-list for alignment */
+    align-items: center;
+    justify-content: flex-start;
+    gap: 25px;
+    max-width: 650px;
     margin: auto;
-    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    flex-wrap: wrap;
 }
 
 .logo {
-    width: 100px; /* Keep size */
-    height: 100px; /* Keep size */
+    width: 100px;
+    height: 100px;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
 }
 
 .logo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block; /* Prevent extra space below image */
+    display: block;
 }
 
-/* --- Filter Container Moved to Header --- */
+/* Filter Container in Header */
 .filter-container {
-    width: 100px; /* Match logo width */
-    height: 100px; /* Match logo height */
-    display: flex; /* Use flex to center knob inside */
+    width: 100px;
+    height: 100px; 
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* Prevent shrinking */
-    /* Remove background/padding if any were added previously */
+    flex-shrink: 0;
     background-color: transparent;
     padding: 0;
-    order: 1; /* Place knob after logo by default */
+    order: 1;
+    gap: 6px
 }
 
 .text-content {
-    flex-grow: 1; /* Allow text to take remaining space */
+    flex-grow: 1;
     text-align: left;
-    order: 2; /* Place text after knob */
-    min-width: 200px; /* Prevent text from becoming too narrow */
+    order: 2;
+    min-width: 200px;
 }
-/* --- End Header Layout Changes --- */
 
 h1 {
     font-size: 2rem;
@@ -124,7 +125,7 @@ h1 {
 }
 
 @media (max-width: 600px) {
-    .h1 { font-size: 1rem; line-height: 1.05; }
+    h1 { font-size: 1.5rem; line-height: 1.05; }
 }
 
 p.subtitle {
@@ -150,22 +151,20 @@ a:hover {
     color: var(--accent-hover);
 }
 
-/* Master Controls Layout (Now just Volume) */
+/* Master Controls */
 .master-controls {
-    display: flex; /* Keep flex for potential future additions */
+    display: flex;
     max-width: 650px;
     width: 100%;
     margin: 20px auto 25px auto;
     box-sizing: border-box;
-    /* Remove gap if only one item */
     gap: 0;
 }
 
 .volume-container {
-    flex: 1; /* Takes full width */
+    flex: 1;
 }
 
-/* Keep volume control style */
 .volume-control {
     display: flex;
     flex-direction: column;
@@ -174,7 +173,7 @@ a:hover {
     border-radius: var(--border-radius);
     box-sizing: border-box;
     width: 100%;
-    margin: 0; /* Reset margins if needed */
+    margin: 0;
 }
 
 .volume-label {
@@ -227,22 +226,20 @@ a:hover {
     cursor: pointer;
 }
 
-
-/* --- Knob Simulation Styles --- */
+/* Knob Simulation Styles */
 .knob-wrapper {
     position: relative;
-    width: 70px; /* Adjusted size to fit 100x100 container */
-    height: 70px; /* Adjusted size */
-    margin: 0; /* Removed auto margins, centering handled by flex parent */
-    cursor: grab; /* Indicate draggable */
-    touch-action: none; /* Prevent scrolling while dragging knob */
+    width: 60px;
+    height: 60px;
+    margin: 0;
+    cursor: grab;
+    touch-action: none;
 }
+
 .knob-wrapper:active {
-     cursor: grabbing;
+    cursor: grabbing;
 }
 
-
-/* Style the visual knob base */
 .knob-visual {
     position: absolute;
     top: 0;
@@ -257,10 +254,22 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: none; /* Visual element doesn't capture mouse events */
+    pointer-events: none;
 }
 
-/* Style the indicator mark on the knob */
+/* More subtle center marker */
+.knob-visual::after {
+    content: '';
+    position: absolute;
+    top: -2px; /* Moved closer to edge */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px; /* Thinner */
+    height: 5px; /* Shorter */
+    background-color: var(--center-marker); /* Using the new subtle color */
+    border-radius: 1px;
+}
+
 .knob-indicator {
     width: 4px;
     height: 40%;
@@ -270,61 +279,78 @@ a:hover {
     left: 50%;
     transform-origin: 50% 100%;
     border-radius: 2px;
-    transform: translateX(-50%) rotate(0deg); /* Initial rotation */
-    transition: transform 0.1s linear; /* Smooth rotation */
-    pointer-events: none; /* Visual element doesn't capture mouse events */
+    transform: translateX(-50%) rotate(0deg);
+    transition: transform 0.1s linear;
+    pointer-events: none;
 }
 
-/* --- Hidden Slider for Knob Value --- */
-/* Make it completely cover the wrapper for interaction */
+/* Hidden Slider for Knob */
 .filter-slider {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    cursor: inherit; /* Inherit grab/grabbing cursor */
-    opacity: 0; /* Make it invisible */
-    z-index: 2; /* Ensure slider is interactive on top */
-    margin: 0; /* Reset margin */
-    padding: 0; /* Reset padding */
-    /* Make it unusable as a standard range input visually */
-     -webkit-appearance: none;
-     appearance: none;
-     background: transparent;
-     outline: none;
-     border: none;
-}
-
-/* Remove default slider appearance remnants */
-.filter-slider::-webkit-slider-runnable-track {
-    background: transparent; border: none;
-}
-.filter-slider::-moz-range-track {
-    background: transparent; border: none;
-}
-.filter-slider::-ms-track {
-     background: transparent; border: none; color: transparent;
-}
-.filter-slider::-webkit-slider-thumb {
-     -webkit-appearance: none; appearance: none;
-     background: transparent; border: none;
-     width: 1px; height: 1px; /* Minimal size needed */
-}
-.filter-slider::-moz-range-thumb {
-     -moz-appearance: none; appearance: none;
-     background: transparent; border: none;
-     width: 1px; height: 1px; border-radius: 0;
-}
-.filter-slider::-ms-thumb {
-     appearance: none; background: transparent; border: none;
-     width: 1px; height: 1px;
-}
-.filter-slider::-ms-fill-lower,
-.filter-slider::-ms-fill-upper {
+    cursor: inherit;
+    opacity: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
     background: transparent;
+    outline: none;
+    border: none;
 }
 
+.filter-slider::-webkit-slider-runnable-track, 
+.filter-slider::-moz-range-track,
+.filter-slider::-ms-track {
+    background: transparent; 
+    border: none;
+}
+
+.filter-slider::-webkit-slider-thumb,
+.filter-slider::-moz-range-thumb,
+.filter-slider::-ms-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent; 
+    border: none;
+    width: 1px; 
+    height: 1px;
+}
+
+/* Filter Toggle Button */
+.filter-toggle {
+    width: 40px;
+    height: 20px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: lowercase;
+    background-color: var(--secondary-color);
+    color: var(--accent-color);
+    border: 1px solid var(--toggle-border);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+    margin-top: 10px !important; /* Increased spacing from knob */
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.filter-toggle.active {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+}
+
+.filter-toggle:hover {
+    background-color: var(--button-hover);
+}
+
+.filter-toggle.active:hover {
+    background-color: var(--accent-hover);
+}
 
 /* File List Styling */
 .file-list {
@@ -427,7 +453,6 @@ a:hover {
     line-height: 1;
 }
 
-/* Time indicator */
 .time-indicator {
     font-size: 0.75rem;
     color: var(--date-color);
@@ -558,76 +583,42 @@ footer {
     left: 18px;
 }
 
-/* File Item Volume Control - alternative per-item volume control */
-.item-volume-control {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    margin-top: 10px;
-}
-
-.item-volume-slider {
-    -webkit-appearance: none;
-    flex-grow: 1;
-    margin: 0 10px;
-    height: 4px;
-    background-color: var(--slider-bg);
-    outline: none;
-    border-radius: 2px;
-}
-
-.item-volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
-}
-
-.item-volume-slider::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
-    border: none;
-}
-
-.volume-icon {
-    color: var(--accent-color);
-    font-size: 0.9rem;
-    width: 20px;
-    text-align: center;
-}
-
 /* Media queries for mobile */
 @media (max-width: 600px) {
-     /* Adjust header layout for mobile */
+    /* Adjust header layout for mobile */
     .header-content {
-        flex-direction: column; /* Stack items vertically */
-        align-items: center; /* Center items */
-        gap: 15px; /* Reduce gap */
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
     }
+    
     .logo {
-         width: 80px; /* Slightly smaller logo */
-         height: 80px;
-         order: 0; /* Logo first */
+        width: 80px;
+        height: 80px;
+        order: 0;
     }
+    
     .filter-container {
-         width: 80px; /* Match smaller logo */
-         height: 80px;
-         order: 1; /* Knob second */
+        width: 80px;
+        height: 100px; /* Adjusted for mobile */
+        order: 1;
     }
+    
     .knob-wrapper {
-         width: 60px; /* Smaller knob */
-         height: 60px;
+        width: 60px;
+        height: 60px;
     }
+    
+    .filter-toggle {
+        width: 36px;
+        height: 20px;
+        font-size: 8px;
+        margin-top: 10px;
+    }
+    
     .text-content {
-        order: 2; /* Text last */
-        text-align: center; /* Center text */
+        order: 2;
+        text-align: center;
         margin-top: 10px;
     }
 
@@ -642,12 +633,12 @@ footer {
 
     .theme-toggle {
         position: static;
-        justify-content: center; /* Center theme toggle */
+        justify-content: center;
         margin-top: 20px;
         margin-bottom: 20px;
     }
-     /* Ensure volume control takes full width */
-     .master-controls {
-         padding: 0 10px; /* Add some padding */
-     }
+    
+    .master-controls {
+        padding: 0 10px;
+    }
 }
