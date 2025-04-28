@@ -18,23 +18,25 @@ document.addEventListener("DOMContentLoaded", function() {
         if (isAudioContextInitialized) return;
 
         try {
+            // Create context first
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             gainNode = audioContext.createGain();
             filterNode = audioContext.createBiquadFilter();
-            audioSource = audioContext.createMediaElementSource(audioPlayer);
-
-            audioSource.connect(gainNode);
+            
+            // Special handling for CORS audio
+            const audioSourceNode = audioContext.createMediaElementSource(audioPlayer);
+            
+            audioSourceNode.connect(gainNode);
             gainNode.connect(filterNode);
             filterNode.connect(audioContext.destination);
-
-            applyVolume(); // Apply initial volume immediately after context creation
-            applyAudioFilter(); // Apply initial *audio* filter state
-
+    
+            applyVolume();
+            applyAudioFilter();
+    
             isAudioContextInitialized = true;
             console.log("Audio Context Initialized");
         } catch (e) {
             console.error("Web Audio API is not supported or could not be initialized.", e);
-            // Optionally disable filter/volume controls if context fails
         }
     }
 
