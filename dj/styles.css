@@ -90,15 +90,15 @@ header {
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
-    gap: 25px;
+    gap: 20px;
     max-width: 650px;
     margin: auto;
     flex-wrap: wrap;
 }
 
 .logo {
-    width: 100px;
-    height: 100px;
+    width: 110px;
+    height: 110px;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -150,8 +150,8 @@ p.subtitle {
 }
 
 .filter-container, .reverb-container {
-    width: 100px;
-    height: 110px; 
+    width: 90px;
+    height: 110px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -221,9 +221,9 @@ p.subtitle {
 
 /* Filter and Reverb Toggle Buttons */
 .filter-toggle, .reverb-toggle {
-    width: 60px;
-    height: 28px;
-    font-size: 11px;
+    width: 70px; /* Wider buttons */
+    height: 32px; /* Taller buttons */
+    font-size: 12px; /* Larger font */
     font-weight: 500;
     text-transform: lowercase;
     background-color: var(--secondary-hover);
@@ -239,6 +239,12 @@ p.subtitle {
     justify-content: center;
     letter-spacing: 0.5px;
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
+    
+    /* Ensure no browser default styles */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
 }
 
 .filter-toggle.active, .reverb-toggle.active {
@@ -650,8 +656,8 @@ footer {
     }
     
     .logo {
-        width: 80px;
-        height: 80px;
+        width: 120px;
+        height: 120px;
         margin: 0 auto;
     }
     
@@ -753,3 +759,47 @@ footer {
             height: 50px; /* Slightly smaller height on mobile */
         }
     }
+
+    /* Add these styles to your styles.css file */
+
+/* Override mobile button styles to make them bigger */
+@media (max-width: 600px) {
+    .filter-toggle, .reverb-toggle {
+      width: 70px !important; /* Make slightly wider */
+      height: 32px !important; /* Make slightly taller */
+      font-size: 12px !important; /* Increase font size */
+      border-radius: 8px !important; /* Match desktop corner radius */
+      padding: 0 !important;
+      margin-top: 15px !important;
+    }
+    
+    /* Ensure container is large enough */
+    .filter-container, .reverb-container {
+      width: 90px !important;
+      height: 110px !important;
+    }
+    
+    /* Fix for Safari and other browsers that might have issues */
+    .filter-toggle, .reverb-toggle {
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      appearance: none !important;
+    }
+    
+    /* Ensure the effect controls have enough space */
+    .effect-controls {
+      gap: 15px !important;
+      justify-content: center !important;
+      width: 100% !important;
+    }
+  }
+
+  /* Mobile-specific overrides if still needed */
+@media (max-width: 600px) {
+    /* Ensure the effect controls have enough space */
+    .effect-controls {
+        gap: 15px !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }
+}
