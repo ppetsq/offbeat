@@ -1,5 +1,9 @@
 /* Offbeat.petsq.net - Refined Design */
 
+* {
+    cursor: default !important;
+}
+
 /* General Styles */
 :root {
     /* Dark Theme (Default) */
@@ -232,12 +236,7 @@ a:hover {
     width: 60px;
     height: 60px;
     margin: 0;
-    cursor: grab;
     touch-action: none;
-}
-
-.knob-wrapper:active {
-    cursor: grabbing;
 }
 
 .knob-visual {
@@ -332,7 +331,6 @@ a:hover {
     color: var(--accent-color);
     border: 1px solid var(--toggle-border);
     border-radius: 4px;
-    cursor: pointer;
     padding: 0;
     margin-top: 10px !important; /* Increased spacing from knob */
     text-align: center;
@@ -523,7 +521,6 @@ footer {
     border-radius: 5px;
     padding: 6px 12px;
     font-size: 0.8rem;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -564,7 +561,6 @@ footer {
     background-color: var(--toggle-bg);
     border-radius: 7px;
     border: 1px solid var(--toggle-border);
-    cursor: pointer;
 }
 
 .theme-toggle-knob {

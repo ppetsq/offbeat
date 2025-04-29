@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     const savedVolume = localStorage.getItem("volume");
-    volumeSlider.value = savedVolume !== null ? savedVolume : 100;
+    volumeSlider.value = savedVolume !== null ? savedVolume : 80;
     volumeValue.textContent = `${volumeSlider.value}%`; // Update initial display
 
     // --- Filter Control ---
@@ -239,10 +239,16 @@ document.addEventListener("DOMContentLoaded", function() {
         // console.log(`Audio Filter Applied - Value: ${value}, Type: ${filterNode.type}, Freq: ${filterNode.frequency.value.toFixed(2)}`);
     }
 
+        // Reset knob to center position
+    function resetKnobToCenter() {
+        filterSlider.value = 50;
+        filterSlider.dispatchEvent(new Event('input'));
+    }
+
     // --- Custom Knob Drag Logic ---
     let isDragging = false;
     let startX, startY, startValue;
-    const sensitivity = 0.4; // Lower value = "stiffer" control (more pixels per value unit)
+    const sensitivity = 0.15; // Lower value = "stiffer" control (more pixels per value unit)
 
     function getEventCoords(e) {
         if (e.touches) {
@@ -260,7 +266,6 @@ document.addEventListener("DOMContentLoaded", function() {
         startX = coords.x;
         startY = coords.y;
         startValue = parseInt(filterSlider.value);
-        knobWrapper.style.cursor = 'grabbing'; // Change cursor
 
         document.addEventListener('mousemove', handleDragMove);
         document.addEventListener('touchmove', handleDragMove, { passive: false }); // Need passive: false to prevent scroll
@@ -302,7 +307,6 @@ document.addEventListener("DOMContentLoaded", function() {
     function handleDragEnd() {
         if (!isDragging) return;
         isDragging = false;
-        knobWrapper.style.cursor = 'grab'; // Restore cursor
 
         document.removeEventListener('mousemove', handleDragMove);
         document.removeEventListener('touchmove', handleDragMove);
@@ -313,6 +317,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     knobWrapper.addEventListener('mousedown', handleDragStart);
     knobWrapper.addEventListener('touchstart', handleDragStart, { passive: true }); // Allow default scroll initially
+    // Double-click to reset knob to center
+knobWrapper.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    resetKnobToCenter();
+});
 
 
     // --- Filter Slider Event Listener ---
@@ -448,6 +458,11 @@ document.addEventListener("DOMContentLoaded", function() {
         if (e.code === 'KeyT' && !e.target.closest('input')) {
             toggleTheme();
         }
+
+        // Reset filter knob to center with 'R'
+if (e.code === 'KeyR' && !e.target.closest('input')) {
+    resetKnobToCenter();
+}
 
         // Arrow Up/Down for volume
         if (e.code === 'ArrowUp' && !e.target.closest('input')) {
