@@ -12,6 +12,13 @@ document.addEventListener("DOMContentLoaded", function() {
     let filterActive = false; // Start with filter inactive
     let reverbActive = false; // Start with reverb inactive
     let currentPlayingItem = null;
+    
+    let reverbLowcutNode;
+    const REVERB_LOWCUT_MIN = 80;  // Minimum lowcut frequency (Hz)
+    const REVERB_LOWCUT_MAX = 800; // Maximum lowcut frequency (Hz)
+    let currentLowcutFreq = 200;   // Default lowcut frequency (Hz)
+
+
     const SKIP_TIME = 30;
     const sensitivity = 0.15; // Lower value = "stiffer" control (more pixels per value unit)
 
@@ -20,14 +27,17 @@ document.addEventListener("DOMContentLoaded", function() {
     let gainNode;
     let filterNode;
     let convolver;
-    let dryGainNode;
-    let wetGainNode;
-    let reverbBypassNode;
+    // Remove old variables
+    // let dryGainNode;
+    // let wetGainNode;
+    // let reverbBypassNode;
+    // Add new variables
+    let reverbSendNode;
+    let reverbReturnNode;
     let isAudioContextInitialized = false;
 
-// Update the initializeAudioContext function to change the signal chain order
-// Reverb should come before filter
-
+    // Update the initializeAudioContext function to use a send-based approach
+    // Update the initializeAudioContext function to add a lowcut filter to the reverb send
 function initializeAudioContext() {
     if (isAudioContextInitialized) return;
 
@@ -37,46 +47,45 @@ function initializeAudioContext() {
         
         // Create nodes
         gainNode = audioContext.createGain(); // Master volume
-        filterNode = audioContext.createBiquadFilter(); // Filter
+        filterNode = audioContext.createBiquadFilter(); // Main filter
         
-        // Reverb nodes
-        dryGainNode = audioContext.createGain(); // Dry signal path
-        wetGainNode = audioContext.createGain(); // Wet signal path
+        // Create reverb nodes (send-based approach with lowcut)
+        reverbSendNode = audioContext.createGain(); // Controls how much signal is sent to reverb
+        reverbLowcutNode = audioContext.createBiquadFilter(); // NEW: Lowcut filter for reverb
         convolver = audioContext.createConvolver(); // Reverb effect
-        reverbBypassNode = audioContext.createGain(); // Bypass node for reverb
-        
-        // Set initial wet gain to 0 (no reverb)
-        wetGainNode.gain.value = 0;
-        
-        // Create impulse response for reverb
-        createReverbImpulse();
+        reverbReturnNode = audioContext.createGain(); // 100% wet reverb return channel
         
         // Get audio source from HTML audio element
         const audioSourceNode = audioContext.createMediaElementSource(audioPlayer);
         
-        // ===== NEW SIGNAL CHAIN (REVERB THEN FILTER) =====
+        // === NEW SIGNAL CHAIN (SEND-BASED WITH LOWCUT) ===
         
-        // Source to master volume gain
-        audioSourceNode.connect(gainNode);
+        // Main signal path
+        audioSourceNode.connect(gainNode); // Source to master volume
         
-        // Split signal after master volume into dry/wet paths for reverb
-        gainNode.connect(dryGainNode);  // Dry path (no reverb)
-        gainNode.connect(wetGainNode);  // Wet path (with reverb)
+        // Create send to reverb with lowcut (pre-filter)
+        audioSourceNode.connect(reverbSendNode); // Source directly to reverb send
+        reverbSendNode.connect(reverbLowcutNode); // Send to lowcut filter
+        reverbLowcutNode.connect(convolver); // From lowcut to convolver (reverb)
+        convolver.connect(reverbReturnNode); // From convolver to reverb return (100% wet)
+        reverbReturnNode.connect(gainNode); // Reverb return to master volume
         
-        // Process wet path through convolver (reverb)
-        wetGainNode.connect(convolver);
-        
-        // Recombine paths - both dry and wet go to a common point
-        // This is where the reverb effect is complete
-        const reverbMixNode = audioContext.createGain();
-        dryGainNode.connect(reverbMixNode);
-        convolver.connect(reverbMixNode);
-        
-        // Now send the mixed reverb signal to the filter
-        reverbMixNode.connect(filterNode);
+        // Post reverb-mix: apply filter to master
+        gainNode.connect(filterNode); // Master volume to filter
         
         // Filter to output
         filterNode.connect(audioContext.destination);
+        
+        // Configure the lowcut filter for reverb
+        reverbLowcutNode.type = 'highpass'; // Highpass = lowcut
+        reverbLowcutNode.frequency.value = 200; // Cut below 200Hz
+        reverbLowcutNode.Q.value = 0.7; // Moderate Q for smooth cutoff
+        
+        // Set initial reverb send to 0 (no reverb)
+        reverbSendNode.gain.value = 0;
+        
+        // Create impulse response for reverb
+        createReverbImpulse();
         
         // Apply initial volume setting
         applyVolume();
@@ -87,57 +96,70 @@ function initializeAudioContext() {
         filterNode.Q.setValueAtTime(1, audioContext.currentTime);
         
         isAudioContextInitialized = true;
-        console.log("Audio Context Initialized with Reverb → Filter signal chain");
+        console.log("Audio Context Initialized with Send-Based Reverb + Lowcut Filter");
     } catch (e) {
         console.error("Web Audio API is not supported or could not be initialized.", e);
     }
 }
 
-    function createReverbImpulse() {
-        if (!audioContext || !convolver) return;
+    // New enhanced reverb impulse function
+function createReverbImpulse() {
+    if (!audioContext || !convolver) return;
+    
+    // Create a more dramatic club-style impulse response (1.2 seconds)
+    const sampleRate = audioContext.sampleRate;
+    const length = 1.2 * sampleRate; // Slightly longer for more presence
+    const impulse = audioContext.createBuffer(2, length, sampleRate);
+    const left = impulse.getChannelData(0);
+    const right = impulse.getChannelData(1);
+    
+    // Generate enhanced club/DJ-style reverb impulse - more dramatic
+    const attack = 0.002; // Faster attack
+    const earlyDecay = 0.02; // Even faster early reflections (punchier)
+    const lateDecay = 0.9; // Less steep decay for more presence
+    
+    for (let i = 0; i < length; i++) {
+        // Time position (0 to 1)
+        const time = i / length;
         
-        // Create a longer, richer impulse response (3 seconds)
-        const sampleRate = audioContext.sampleRate;
-        const length = 3 * sampleRate; // 3 seconds for longer tail
-        const impulse = audioContext.createBuffer(2, length, sampleRate);
-        const left = impulse.getChannelData(0);
-        const right = impulse.getChannelData(1);
-        
-        // Generate reverb impulse with early reflections and slower decay
-        const attack = 0.01; // Quick attack
-        const earlyDecay = 0.1; // Early reflections decay
-        const lateDecay = 0.5; // Late reflections decay slower
-        
-        for (let i = 0; i < length; i++) {
-            // Time position (0 to 1)
-            const time = i / length;
-            
-            // Early reflections (first 15% of the impulse)
-            if (time < 0.15) {
-                // More pronounced early reflections
-                const amplitude = Math.pow((1 - time / 0.15), earlyDecay);
-                left[i] = (Math.random() * 2 - 1) * amplitude;
-                right[i] = (Math.random() * 2 - 1) * amplitude;
-            } 
-            // Late reflections
-            else {
-                // Slower decay for late reflections (more reverb tail)
-                const amplitude = Math.pow((1 - (time - 0.15) / 0.85), lateDecay);
-                left[i] = (Math.random() * 2 - 1) * amplitude * 0.5; // Slightly quieter
-                right[i] = (Math.random() * 2 - 1) * amplitude * 0.5;
-            }
+        // Enhanced club-style early reflections (first 10% - more pronounced)
+        if (time < 0.1) {
+            // Stronger early reflections for impact
+            const amplitude = Math.pow((1 - time / 0.1), earlyDecay);
+            left[i] = (Math.random() * 2 - 1) * amplitude * 1.3; // 30% stronger early reflections
+            right[i] = (Math.random() * 2 - 1) * amplitude * 1.3;
+        } 
+        // Late reflections - more sustained for presence
+        else {
+            // Slightly slower decay for more audible reverb tail
+            const amplitude = Math.pow((1 - (time - 0.1) / 0.9), lateDecay);
+            left[i] = (Math.random() * 2 - 1) * amplitude * 0.5; // Stronger tail (0.5 vs 0.3)
+            right[i] = (Math.random() * 2 - 1) * amplitude * 0.5;
         }
-        
-        // Apply a gentle low-pass filter effect to the impulse by smoothing
-        const smoothingFactor = 0.2;
-        for (let i = 1; i < length; i++) {
-            left[i] = left[i] * (1 - smoothingFactor) + left[i-1] * smoothingFactor;
-            right[i] = right[i] * (1 - smoothingFactor) + right[i-1] * smoothingFactor;
-        }
-        
-        convolver.buffer = impulse;
-        console.log("Enhanced reverb impulse created");
     }
+    
+    // Apply different smoothing to left and right for enhanced stereo width
+    const smoothingFactorLeft = 0.1; // Less smoothing = brighter reverb
+    const smoothingFactorRight = 0.12;
+    
+    // First pass: standard smoothing (less aggressive for more brightness)
+    for (let i = 1; i < length; i++) {
+        left[i] = left[i] * (1 - smoothingFactorLeft) + left[i-1] * smoothingFactorLeft;
+        right[i] = right[i] * (1 - smoothingFactorRight) + right[i-1] * smoothingFactorRight;
+    }
+    
+    // Second pass: enhanced high frequencies preservation for more "sparkle"
+    for (let i = length - 2; i >= 0; i--) {
+        // Blend with more of the original signal to preserve highs
+        left[i] = left[i] * 0.9 + left[i+1] * 0.1; // More high-end (10% vs 5%)
+        right[i] = right[i] * 0.9 + right[i+1] * 0.1;
+    }
+    
+    convolver.buffer = impulse;
+    console.log("Enhanced club/DJ-style reverb impulse created - more dramatic");
+}
+
+
 
     function resumeAudioContext() {
         if (audioContext && audioContext.state === 'suspended') {
@@ -336,15 +358,16 @@ function initializeAudioContext() {
     
     // --- Reverb Control ---
     
-    // Toggle reverb on/off
+    // Toggle reverb on/off - FIXED to use the new send-based approach
     function toggleReverb() {
         reverbActive = !reverbActive;
         reverbToggleBtn.classList.toggle('active', reverbActive);
         
-        // If reverb is turned off, set wet gain to 0
+        // If reverb is turned off, set send to 0
         if (!reverbActive) {
-            wetGainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            dryGainNode.gain.setValueAtTime(1, audioContext.currentTime);
+            if (reverbSendNode) {
+                reverbSendNode.gain.setValueAtTime(0, audioContext.currentTime);
+            }
         } else {
             // Re-apply the current reverb setting if active
             applyReverb();
@@ -361,34 +384,38 @@ function initializeAudioContext() {
         }
     }
     
-    function applyReverb() {
-        if (!convolver || !isAudioContextInitialized) return;
-        
-        // Skip reverb application if reverb is not active
-        if (!reverbActive) return;
-        
-        const value = parseInt(reverbSlider.value);
-        
-        // Calculate wet/dry mix with enhanced curve
-        // Use a non-linear curve for more dramatic effect at higher values
-        const wetAmount = Math.pow(value / 100, 0.8); // Less aggressive curve (0.8 instead of 1)
-        
-        // Enhance the effect at higher values
-        const enhancedWetAmount = wetAmount * 1.3; // 30% stronger at maximum
-        
-        // Smooth transition to new values (50ms)
-        const now = audioContext.currentTime;
-        const transitionTime = 0.05; // 50ms transition
-        
-        wetGainNode.gain.linearRampToValueAtTime(enhancedWetAmount, now + transitionTime);
-        
-        // Reduce dry signal more as wet increases, but maintain overall volume
-        // This creates a more immersive effect
-        const dryAmount = Math.max(0.3, 1 - (wetAmount * 0.7)); // Minimum 30% dry signal
-        dryGainNode.gain.linearRampToValueAtTime(dryAmount, now + transitionTime);
-        
-        console.log(`Enhanced Reverb Applied - Wet: ${enhancedWetAmount.toFixed(2)}, Dry: ${dryAmount.toFixed(2)}`);
+    // Updated reverb application function
+function applyReverb() {
+    if (!convolver || !isAudioContextInitialized || !reverbSendNode) return;
+    
+    // Skip reverb application if reverb is not active
+    if (!reverbActive) {
+        reverbSendNode.gain.setValueAtTime(0, audioContext.currentTime);
+        return;
     }
+    
+    const value = parseInt(reverbSlider.value);
+    
+    // New send amount calculation with enhanced curve for more dramatic effect
+    // Less exponential curve (1.1 instead of 1.2) for more noticeable effect at lower values
+    // Upper limit boosted to 1.5 (150%) to make the effect more prominent
+    const sendAmount = Math.pow(value / 100, 1.1) * 1.5;
+    
+    // Smooth transition to new values (50ms)
+    const now = audioContext.currentTime;
+    const transitionTime = 0.05; // 50ms transition
+    
+    reverbSendNode.gain.linearRampToValueAtTime(sendAmount, now + transitionTime);
+    
+    // Optionally boost the return channel slightly to enhance the effect
+    if (reverbReturnNode) {
+        // Add 3dB (1.4x) boost to the reverb return for more presence
+        const returnBoost = 1.4; 
+        reverbReturnNode.gain.setValueAtTime(returnBoost, audioContext.currentTime);
+    }
+    
+    console.log(`Enhanced DJ Reverb Applied - Send Amount: ${sendAmount.toFixed(3)}`);
+}
     
     // Reset reverb knob to default position (0)
     function resetReverbKnobToDefault() {
@@ -691,6 +718,16 @@ function initializeAudioContext() {
             toggleTheme();
         }
 
+        // Adjust reverb lowcut with '[' and ']' keys
+        if (e.code === 'BracketLeft' && !e.target.closest('input')) {
+            e.preventDefault();
+            adjustReverbLowcut('down'); // Lower the cutoff frequency
+        }
+        if (e.code === 'BracketRight' && !e.target.closest('input')) {
+            e.preventDefault();
+            adjustReverbLowcut('up'); // Raise the cutoff frequency
+        }
+
         // Reset filter knob to center with 'R'
         if (e.code === 'KeyR' && !e.target.closest('input')) {
             resetFilterKnobToCenter();
@@ -751,4 +788,25 @@ function updateReverbKnobVisual(value) {
         const degree = -135 + (value / 100) * rotationRange;
         knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
     }
+}
+
+function adjustReverbLowcut(direction) {
+    if (!reverbLowcutNode || !isAudioContextInitialized) return;
+    
+    // Calculate new frequency value with exponential scaling for better control
+    // Step size increases as the frequency gets higher (more natural for human hearing)
+    let step;
+    if (direction === 'up') {
+        step = currentLowcutFreq * 0.1; // 10% increase
+        currentLowcutFreq = Math.min(REVERB_LOWCUT_MAX, currentLowcutFreq + step);
+    } else {
+        step = currentLowcutFreq * 0.1; // 10% decrease
+        currentLowcutFreq = Math.max(REVERB_LOWCUT_MIN, currentLowcutFreq - step);
+    }
+    
+    // Apply the new frequency with a small transition for smoothness
+    const now = audioContext.currentTime;
+    reverbLowcutNode.frequency.linearRampToValueAtTime(currentLowcutFreq, now + 0.05);
+    
+    console.log(`Reverb Lowcut: ${Math.round(currentLowcutFreq)} Hz`);
 }
