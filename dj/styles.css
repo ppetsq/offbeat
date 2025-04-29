@@ -713,3 +713,41 @@ footer {
         padding: 0 10px;
     }
 }
+
+/* ==================
+    WAVEFORM VISUALIZER
+    ================== */
+
+    .visualizer-container {
+        width: 100%; /* Take full width within master controls */
+        margin-top: 15px; /* Add some space above */
+        background-color: var(--secondary-color); /* Match background */
+        border-radius: var(--border-radius);
+        padding: 12px 16px;
+        box-sizing: border-box;
+    }
+   
+    #waveformCanvas {
+        display: block; /* Remove extra space below */
+        width: 100%;  /* Make canvas fill container width */
+        height: 40px; /* Set a fixed height */
+        border-radius: 6px; /* Slightly rounded corners */
+    }
+   
+    /* Adjust master controls layout if needed */
+    .master-controls {
+        flex-direction: column; /* Stack volume and visualizer */
+        gap: 15px; /* Space between volume and visualizer */
+    }
+   
+    /* Mobile Adjustments */
+    @media (max-width: 600px) {
+        .visualizer-container {
+            margin-top: 10px;
+            padding: 8px;
+        }
+   
+        #waveformCanvas {
+            height: 50px; /* Slightly smaller height on mobile */
+        }
+    }
