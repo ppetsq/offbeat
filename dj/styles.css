@@ -73,7 +73,7 @@ header {
 /* Header Content Layout */
 .header-content {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-start;
     gap: 25px;
     max-width: 650px;
@@ -97,6 +97,14 @@ header {
     display: block;
 }
 
+/* Effect Controls Container */
+.effect-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 0px;
+    align-items: flex-start;
+}
+
 /* Filter Container in Header */
 .filter-container {
     width: 100px;
@@ -108,14 +116,31 @@ header {
     flex-shrink: 0;
     background-color: transparent;
     padding: 0;
-    order: 1;
-    gap: 6px
+    gap: 6px;
+}
+
+/* Reverb Container in Header */
+.reverb-container {
+    width: 100px;
+    height: 100px; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background-color: transparent;
+    padding: 0;
+    gap: 6px;
+}
+
+.reverb-container .knob-indicator {
+    /* -135 degrees is 7 o'clock position */
+    transform: translateX(-50%) rotate(-135deg);
 }
 
 .text-content {
     flex-grow: 1;
     text-align: left;
-    order: 2;
     min-width: 200px;
 }
 
@@ -284,7 +309,7 @@ a:hover {
 }
 
 /* Hidden Slider for Knob */
-.filter-slider {
+.filter-slider, .reverb-slider {
     position: absolute;
     top: 0;
     left: 0;
@@ -304,14 +329,20 @@ a:hover {
 
 .filter-slider::-webkit-slider-runnable-track, 
 .filter-slider::-moz-range-track,
-.filter-slider::-ms-track {
+.filter-slider::-ms-track,
+.reverb-slider::-webkit-slider-runnable-track, 
+.reverb-slider::-moz-range-track,
+.reverb-slider::-ms-track {
     background: transparent; 
     border: none;
 }
 
 .filter-slider::-webkit-slider-thumb,
 .filter-slider::-moz-range-thumb,
-.filter-slider::-ms-thumb {
+.filter-slider::-ms-thumb,
+.reverb-slider::-webkit-slider-thumb,
+.reverb-slider::-moz-range-thumb,
+.reverb-slider::-ms-thumb {
     -webkit-appearance: none;
     appearance: none;
     background: transparent; 
@@ -320,8 +351,8 @@ a:hover {
     height: 1px;
 }
 
-/* Filter Toggle Button */
-.filter-toggle {
+/* Filter and Reverb Toggle Buttons */
+.filter-toggle, .reverb-toggle {
     width: 40px;
     height: 20px;
     font-size: 10px;
@@ -335,18 +366,21 @@ a:hover {
     margin-top: 10px !important; /* Increased spacing from knob */
     text-align: center;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.filter-toggle.active {
+.filter-toggle.active, .reverb-toggle.active {
     background-color: var(--accent-color);
     color: var(--bg-color);
 }
 
-.filter-toggle:hover {
+.filter-toggle:hover, .reverb-toggle:hover {
     background-color: var(--button-hover);
 }
 
-.filter-toggle.active:hover {
+.filter-toggle.active:hover, .reverb-toggle.active:hover {
     background-color: var(--accent-hover);
 }
 
@@ -586,18 +620,31 @@ footer {
         flex-direction: column;
         align-items: center;
         gap: 15px;
+        text-align: center;
     }
     
     .logo {
         width: 80px;
         height: 80px;
-        order: 0;
+        /* Remove flex-basis to prevent stretching */
+        flex-basis: auto;
+        /* Center the logo */
+        margin: 0 auto;
     }
     
-    .filter-container {
-        width: 80px;
-        height: 100px; /* Adjusted for mobile */
+    .effect-controls {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        width: 100%;
+        gap: 20px;
+        margin-top: 10px;
         order: 1;
+    }
+    
+    .filter-container, .reverb-container {
+        width: 70px;
+        height: 90px;
     }
     
     .knob-wrapper {
@@ -605,7 +652,7 @@ footer {
         height: 60px;
     }
     
-    .filter-toggle {
+    .filter-toggle, .reverb-toggle {
         width: 36px;
         height: 20px;
         font-size: 8px;
@@ -615,7 +662,8 @@ footer {
     .text-content {
         order: 2;
         text-align: center;
-        margin-top: 10px;
+        margin-top: 20px;
+        flex-basis: 100%;
     }
 
     .player-controls {

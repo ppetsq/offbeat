@@ -3,47 +3,140 @@ document.addEventListener("DOMContentLoaded", function() {
     const volumeSlider = document.getElementById("masterVolume");
     const volumeValue = document.querySelector(".volume-value");
     const filterSlider = document.getElementById("masterFilter");
-    const knobWrapper = document.querySelector('.knob-wrapper'); // Get the knob wrapper
+    const reverbSlider = document.getElementById("masterReverb");
+    const filterKnobWrapper = document.querySelector('.filter-container .knob-wrapper');
+    const reverbKnobWrapper = document.querySelector('.reverb-container .knob-wrapper');
     const filterToggleBtn = document.querySelector('.filter-toggle');
+    const reverbToggleBtn = document.querySelector('.reverb-toggle');
+    
     let filterActive = false; // Start with filter inactive
+    let reverbActive = false; // Start with reverb inactive
     let currentPlayingItem = null;
     const SKIP_TIME = 30;
+    const sensitivity = 0.15; // Lower value = "stiffer" control (more pixels per value unit)
 
     // --- Web Audio API Setup ---
     let audioContext;
     let gainNode;
     let filterNode;
-    let audioSource;
+    let convolver;
+    let dryGainNode;
+    let wetGainNode;
+    let reverbBypassNode;
     let isAudioContextInitialized = false;
 
-    function initializeAudioContext() {
-        if (isAudioContextInitialized) return;
+// Update the initializeAudioContext function to change the signal chain order
+// Reverb should come before filter
 
-        try {
-            // Create context first
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            gainNode = audioContext.createGain();
-            filterNode = audioContext.createBiquadFilter();
+function initializeAudioContext() {
+    if (isAudioContextInitialized) return;
+
+    try {
+        // Create context first
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create nodes
+        gainNode = audioContext.createGain(); // Master volume
+        filterNode = audioContext.createBiquadFilter(); // Filter
+        
+        // Reverb nodes
+        dryGainNode = audioContext.createGain(); // Dry signal path
+        wetGainNode = audioContext.createGain(); // Wet signal path
+        convolver = audioContext.createConvolver(); // Reverb effect
+        reverbBypassNode = audioContext.createGain(); // Bypass node for reverb
+        
+        // Set initial wet gain to 0 (no reverb)
+        wetGainNode.gain.value = 0;
+        
+        // Create impulse response for reverb
+        createReverbImpulse();
+        
+        // Get audio source from HTML audio element
+        const audioSourceNode = audioContext.createMediaElementSource(audioPlayer);
+        
+        // ===== NEW SIGNAL CHAIN (REVERB THEN FILTER) =====
+        
+        // Source to master volume gain
+        audioSourceNode.connect(gainNode);
+        
+        // Split signal after master volume into dry/wet paths for reverb
+        gainNode.connect(dryGainNode);  // Dry path (no reverb)
+        gainNode.connect(wetGainNode);  // Wet path (with reverb)
+        
+        // Process wet path through convolver (reverb)
+        wetGainNode.connect(convolver);
+        
+        // Recombine paths - both dry and wet go to a common point
+        // This is where the reverb effect is complete
+        const reverbMixNode = audioContext.createGain();
+        dryGainNode.connect(reverbMixNode);
+        convolver.connect(reverbMixNode);
+        
+        // Now send the mixed reverb signal to the filter
+        reverbMixNode.connect(filterNode);
+        
+        // Filter to output
+        filterNode.connect(audioContext.destination);
+        
+        // Apply initial volume setting
+        applyVolume();
+        
+        // Set filter to bypass mode initially
+        filterNode.type = 'allpass';
+        filterNode.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
+        filterNode.Q.setValueAtTime(1, audioContext.currentTime);
+        
+        isAudioContextInitialized = true;
+        console.log("Audio Context Initialized with Reverb → Filter signal chain");
+    } catch (e) {
+        console.error("Web Audio API is not supported or could not be initialized.", e);
+    }
+}
+
+    function createReverbImpulse() {
+        if (!audioContext || !convolver) return;
+        
+        // Create a longer, richer impulse response (3 seconds)
+        const sampleRate = audioContext.sampleRate;
+        const length = 3 * sampleRate; // 3 seconds for longer tail
+        const impulse = audioContext.createBuffer(2, length, sampleRate);
+        const left = impulse.getChannelData(0);
+        const right = impulse.getChannelData(1);
+        
+        // Generate reverb impulse with early reflections and slower decay
+        const attack = 0.01; // Quick attack
+        const earlyDecay = 0.1; // Early reflections decay
+        const lateDecay = 0.5; // Late reflections decay slower
+        
+        for (let i = 0; i < length; i++) {
+            // Time position (0 to 1)
+            const time = i / length;
             
-            // Special handling for CORS audio
-            const audioSourceNode = audioContext.createMediaElementSource(audioPlayer);
-            
-            audioSourceNode.connect(gainNode);
-            gainNode.connect(filterNode);
-            filterNode.connect(audioContext.destination);
-    
-            applyVolume();
-            
-            // IMPORTANT: Set filter to bypass mode initially
-            filterNode.type = 'allpass';
-            filterNode.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
-            filterNode.Q.setValueAtTime(1, audioContext.currentTime);
-    
-            isAudioContextInitialized = true;
-            console.log("Audio Context Initialized with filter bypassed");
-        } catch (e) {
-            console.error("Web Audio API is not supported or could not be initialized.", e);
+            // Early reflections (first 15% of the impulse)
+            if (time < 0.15) {
+                // More pronounced early reflections
+                const amplitude = Math.pow((1 - time / 0.15), earlyDecay);
+                left[i] = (Math.random() * 2 - 1) * amplitude;
+                right[i] = (Math.random() * 2 - 1) * amplitude;
+            } 
+            // Late reflections
+            else {
+                // Slower decay for late reflections (more reverb tail)
+                const amplitude = Math.pow((1 - (time - 0.15) / 0.85), lateDecay);
+                left[i] = (Math.random() * 2 - 1) * amplitude * 0.5; // Slightly quieter
+                right[i] = (Math.random() * 2 - 1) * amplitude * 0.5;
+            }
         }
+        
+        // Apply a gentle low-pass filter effect to the impulse by smoothing
+        const smoothingFactor = 0.2;
+        for (let i = 1; i < length; i++) {
+            left[i] = left[i] * (1 - smoothingFactor) + left[i-1] * smoothingFactor;
+            right[i] = right[i] * (1 - smoothingFactor) + right[i-1] * smoothingFactor;
+        }
+        
+        convolver.buffer = impulse;
+        console.log("Enhanced reverb impulse created");
     }
 
     function resumeAudioContext() {
@@ -115,10 +208,6 @@ document.addEventListener("DOMContentLoaded", function() {
         audioPlayer.src = src;
         audioPlayer.play().catch(error => console.error("Error playing audio:", error));
         currentPlayingItem = item;
-
-        // Volume/Filter audio should be applied already by initializeAudioContext or their respective handlers
-        // applyVolume();
-        // applyAudioFilter();
 
         item.classList.add("expanded");
         updateIcon(item);
@@ -198,9 +287,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // Function to update ONLY the visual rotation of the knob
-    function updateKnobVisual(value) {
-         const knobIndicator = document.querySelector('.knob-indicator');
+    // Function to update ONLY the visual rotation of the filter knob
+    function updateFilterKnobVisual(value) {
+         const knobIndicator = document.querySelector('.filter-container .knob-indicator');
          if (knobIndicator) {
              const rotationRange = 270; // e.g., -135 to +135 degrees
              const degree = ((value / 100) * rotationRange) - (rotationRange / 2);
@@ -239,17 +328,75 @@ document.addEventListener("DOMContentLoaded", function() {
         // console.log(`Audio Filter Applied - Value: ${value}, Type: ${filterNode.type}, Freq: ${filterNode.frequency.value.toFixed(2)}`);
     }
 
-        // Reset knob to center position
-    function resetKnobToCenter() {
+    // Reset filter knob to center position
+    function resetFilterKnobToCenter() {
         filterSlider.value = 50;
         filterSlider.dispatchEvent(new Event('input'));
     }
+    
+    // --- Reverb Control ---
+    
+    // Toggle reverb on/off
+    function toggleReverb() {
+        reverbActive = !reverbActive;
+        reverbToggleBtn.classList.toggle('active', reverbActive);
+        
+        // If reverb is turned off, set wet gain to 0
+        if (!reverbActive) {
+            wetGainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            dryGainNode.gain.setValueAtTime(1, audioContext.currentTime);
+        } else {
+            // Re-apply the current reverb setting if active
+            applyReverb();
+        }
+    }
+    
+    // Function to update ONLY the visual rotation of the reverb knob
+    function updateReverbKnobVisual(value) {
+        const knobIndicator = document.querySelector('.reverb-container .knob-indicator');
+        if (knobIndicator) {
+            const rotationRange = 270; // e.g., -135 to +135 degrees
+            const degree = ((value / 100) * rotationRange) - (rotationRange / 2);
+            knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
+        }
+    }
+    
+    function applyReverb() {
+        if (!convolver || !isAudioContextInitialized) return;
+        
+        // Skip reverb application if reverb is not active
+        if (!reverbActive) return;
+        
+        const value = parseInt(reverbSlider.value);
+        
+        // Calculate wet/dry mix with enhanced curve
+        // Use a non-linear curve for more dramatic effect at higher values
+        const wetAmount = Math.pow(value / 100, 0.8); // Less aggressive curve (0.8 instead of 1)
+        
+        // Enhance the effect at higher values
+        const enhancedWetAmount = wetAmount * 1.3; // 30% stronger at maximum
+        
+        // Smooth transition to new values (50ms)
+        const now = audioContext.currentTime;
+        const transitionTime = 0.05; // 50ms transition
+        
+        wetGainNode.gain.linearRampToValueAtTime(enhancedWetAmount, now + transitionTime);
+        
+        // Reduce dry signal more as wet increases, but maintain overall volume
+        // This creates a more immersive effect
+        const dryAmount = Math.max(0.3, 1 - (wetAmount * 0.7)); // Minimum 30% dry signal
+        dryGainNode.gain.linearRampToValueAtTime(dryAmount, now + transitionTime);
+        
+        console.log(`Enhanced Reverb Applied - Wet: ${enhancedWetAmount.toFixed(2)}, Dry: ${dryAmount.toFixed(2)}`);
+    }
+    
+    // Reset reverb knob to default position (0)
+    function resetReverbKnobToDefault() {
+        reverbSlider.value = 0;
+        reverbSlider.dispatchEvent(new Event('input'));
+    }
 
-    // --- Custom Knob Drag Logic ---
-    let isDragging = false;
-    let startX, startY, startValue;
-    const sensitivity = 0.15; // Lower value = "stiffer" control (more pixels per value unit)
-
+    // --- Common Utilities for Drag Controls ---
     function getEventCoords(e) {
         if (e.touches) {
             return { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -257,36 +404,36 @@ document.addEventListener("DOMContentLoaded", function() {
         return { x: e.clientX, y: e.clientY };
     }
 
-    function handleDragStart(e) {
-        // Prevent text selection during drag
-        // e.preventDefault(); // Be cautious with preventDefault on touchstart, can break scrolling elsewhere
+    // --- Filter Knob Drag Logic ---
+    let isFilterDragging = false;
+    let filterStartX, filterStartY, filterStartValue;
 
-        isDragging = true;
+    function handleFilterDragStart(e) {
+        isFilterDragging = true;
         const coords = getEventCoords(e);
-        startX = coords.x;
-        startY = coords.y;
-        startValue = parseInt(filterSlider.value);
+        filterStartX = coords.x;
+        filterStartY = coords.y;
+        filterStartValue = parseInt(filterSlider.value);
 
-        document.addEventListener('mousemove', handleDragMove);
-        document.addEventListener('touchmove', handleDragMove, { passive: false }); // Need passive: false to prevent scroll
-        document.addEventListener('mouseup', handleDragEnd);
-        document.addEventListener('touchend', handleDragEnd);
-        document.addEventListener('mouseleave', handleDragEnd); // Stop if mouse leaves window
+        document.addEventListener('mousemove', handleFilterDragMove);
+        document.addEventListener('touchmove', handleFilterDragMove, { passive: false });
+        document.addEventListener('mouseup', handleFilterDragEnd);
+        document.addEventListener('touchend', handleFilterDragEnd);
+        document.addEventListener('mouseleave', handleFilterDragEnd);
     }
 
-    function handleDragMove(e) {
-        if (!isDragging) return;
-        e.preventDefault(); // Prevent scrolling ONLY when dragging
+    function handleFilterDragMove(e) {
+        if (!isFilterDragging) return;
+        e.preventDefault();
 
         const coords = getEventCoords(e);
-        const deltaX = coords.x - startX;
-        const deltaY = coords.y - startY;
+        const deltaX = coords.x - filterStartX;
+        const deltaY = coords.y - filterStartY;
 
         // Combine horizontal and vertical movement (invert vertical)
-        // Adjust sensitivity here
         const change = (deltaX - deltaY) * sensitivity;
 
-        let newValue = Math.round(startValue + change);
+        let newValue = Math.round(filterStartValue + change);
         
         // Add snap behavior - if within 3 units of center (50), snap to 50
         if (Math.abs(newValue - 50) < 3) {
@@ -298,55 +445,130 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (newValue !== parseInt(filterSlider.value)) {
             filterSlider.value = newValue;
-            // Manually trigger the 'input' event for filterSlider
-            // This ensures both visual and audio updates happen via the listener
+            // Trigger the input event
             filterSlider.dispatchEvent(new Event('input', { bubbles: true }));
         }
     }
 
-    function handleDragEnd() {
-        if (!isDragging) return;
-        isDragging = false;
+    function handleFilterDragEnd() {
+        if (!isFilterDragging) return;
+        isFilterDragging = false;
 
-        document.removeEventListener('mousemove', handleDragMove);
-        document.removeEventListener('touchmove', handleDragMove);
-        document.removeEventListener('mouseup', handleDragEnd);
-        document.removeEventListener('touchend', handleDragEnd);
-        document.removeEventListener('mouseleave', handleDragEnd);
+        document.removeEventListener('mousemove', handleFilterDragMove);
+        document.removeEventListener('touchmove', handleFilterDragMove);
+        document.removeEventListener('mouseup', handleFilterDragEnd);
+        document.removeEventListener('touchend', handleFilterDragEnd);
+        document.removeEventListener('mouseleave', handleFilterDragEnd);
     }
 
-    knobWrapper.addEventListener('mousedown', handleDragStart);
-    knobWrapper.addEventListener('touchstart', handleDragStart, { passive: true }); // Allow default scroll initially
-    // Double-click to reset knob to center
-knobWrapper.addEventListener('dblclick', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    resetKnobToCenter();
-});
+    // --- Reverb Knob Drag Logic ---
+    let isReverbDragging = false;
+    let reverbStartX, reverbStartY, reverbStartValue;
 
+    function handleReverbDragStart(e) {
+        isReverbDragging = true;
+        const coords = getEventCoords(e);
+        reverbStartX = coords.x;
+        reverbStartY = coords.y;
+        reverbStartValue = parseInt(reverbSlider.value);
 
-    // --- Filter Slider Event Listener ---
-    // This listener now handles BOTH visual and audio updates when the value changes
+        document.addEventListener('mousemove', handleReverbDragMove);
+        document.addEventListener('touchmove', handleReverbDragMove, { passive: false });
+        document.addEventListener('mouseup', handleReverbDragEnd);
+        document.addEventListener('touchend', handleReverbDragEnd);
+        document.addEventListener('mouseleave', handleReverbDragEnd);
+    }
+
+    function handleReverbDragMove(e) {
+        if (!isReverbDragging) return;
+        e.preventDefault();
+
+        const coords = getEventCoords(e);
+        const deltaX = coords.x - reverbStartX;
+        const deltaY = coords.y - reverbStartY;
+
+        // Combine horizontal and vertical movement (invert vertical)
+        const change = (deltaX - deltaY) * sensitivity;
+
+        let newValue = Math.round(reverbStartValue + change);
+        
+        // No snap behavior for reverb
+        
+        // Clamp value between 0 and 100
+        newValue = Math.max(0, Math.min(100, newValue));
+
+        if (newValue !== parseInt(reverbSlider.value)) {
+            reverbSlider.value = newValue;
+            // Trigger the input event
+            reverbSlider.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    function handleReverbDragEnd() {
+        if (!isReverbDragging) return;
+        isReverbDragging = false;
+
+        document.removeEventListener('mousemove', handleReverbDragMove);
+        document.removeEventListener('touchmove', handleReverbDragMove);
+        document.removeEventListener('mouseup', handleReverbDragEnd);
+        document.removeEventListener('touchend', handleReverbDragEnd);
+        document.removeEventListener('mouseleave', handleReverbDragEnd);
+    }
+
+    // Set up drag handlers for both knobs
+    if (filterKnobWrapper) {
+        filterKnobWrapper.addEventListener('mousedown', handleFilterDragStart);
+        filterKnobWrapper.addEventListener('touchstart', handleFilterDragStart, { passive: true });
+        
+        // Double-click to reset knob to center
+        filterKnobWrapper.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            resetFilterKnobToCenter();
+        });
+    }
+    
+    if (reverbKnobWrapper) {
+        reverbKnobWrapper.addEventListener('mousedown', handleReverbDragStart);
+        reverbKnobWrapper.addEventListener('touchstart', handleReverbDragStart, { passive: true });
+        
+        // Double-click to reset knob to default
+        reverbKnobWrapper.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            resetReverbKnobToDefault();
+        });
+    }
+
+    // --- Slider Event Listeners ---
+    // Filter slider listener
     filterSlider.addEventListener("input", function() {
         const currentValue = parseInt(filterSlider.value);
-        updateKnobVisual(currentValue); // Update visual immediately
-        // Resume context if user interacts with filter while suspended
+        updateFilterKnobVisual(currentValue);
         resumeAudioContext();
-        applyAudioFilter(); // Apply audio effect (only if context is ready)
-        // Optional: Save filter value
-        // localStorage.setItem("filter", currentValue);
+        applyAudioFilter();
     });
+    
+    // Reverb slider listener
+    if (reverbSlider) {
+        reverbSlider.addEventListener("input", function() {
+            const currentValue = parseInt(reverbSlider.value);
+            updateReverbKnobVisual(currentValue);
+            resumeAudioContext();
+            applyReverb();
+        });
+    }
 
-    // --- Initialize Filter ---
-    // Optional: Load saved filter value
-    /*
-    const savedFilter = localStorage.getItem("filter");
-    filterSlider.value = savedFilter !== null ? savedFilter : 50;
-    */
+    // --- Initialize Controls ---
+    // Initialize filter
     filterSlider.value = 50; // Default center position
-    updateKnobVisual(filterSlider.value); // Set initial visual state immediately on load
-    // Initial audio filter state will be set if/when audio context initializes
-    // --- End Filter Initialization ---
+    updateFilterKnobVisual(filterSlider.value);
+    
+    // Initialize reverb
+    if (reverbSlider) {
+        reverbSlider.value = 0; // Default to no reverb
+        updateReverbKnobVisual(reverbSlider.value);
+    }
 
     // Set up featured tags
     document.querySelectorAll('.file-featured').forEach(item => {
@@ -403,7 +625,7 @@ knobWrapper.addEventListener('dblclick', function(e) {
             playPauseBtn.addEventListener("click", function(e) {
                 e.stopPropagation();
                 if (currentPlayingItem !== item) {
-                    playTrack(item); // This will handle resume context
+                    playTrack(item);
                 } else {
                     resumeAudioContext();
                     if (audioPlayer.paused) {
@@ -422,29 +644,39 @@ knobWrapper.addEventListener('dblclick', function(e) {
     audioPlayer.addEventListener("ended", resetAllItems);
     audioPlayer.addEventListener("loadedmetadata", updateTime);
     audioPlayer.addEventListener("play", function() {
-        resumeAudioContext(); // Ensure context is running
+        resumeAudioContext();
         if (currentPlayingItem) updateIcon(currentPlayingItem);
     });
     audioPlayer.addEventListener("pause", function() {
         if (currentPlayingItem) updateIcon(currentPlayingItem);
     });
 
-    // Event listener for filter toggle button
+    // Effect toggle button listeners
     filterToggleBtn.addEventListener('click', function() {
         resumeAudioContext();
         toggleFilter();
     });
+    
+    if (reverbToggleBtn) {
+        reverbToggleBtn.addEventListener('click', function() {
+            resumeAudioContext();
+            toggleReverb();
+        });
+    }
 
-    // Set initial state for the button (NOT active)
+    // Set initial state for the buttons (NOT active)
     filterToggleBtn.classList.remove('active');
+    if (reverbToggleBtn) {
+        reverbToggleBtn.classList.remove('active');
+    }
 
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         // Space - toggle play/pause
-        if (e.code === 'Space' && !e.target.closest('input, button')) { // Avoid interfering with inputs/buttons
+        if (e.code === 'Space' && !e.target.closest('input, button')) {
             if (currentPlayingItem) {
                 e.preventDefault();
-                resumeAudioContext(); // Needed before play/pause action
+                resumeAudioContext();
                 if (audioPlayer.paused) {
                     audioPlayer.play().catch(error => console.error("Error playing audio:", error));
                 } else {
@@ -460,40 +692,63 @@ knobWrapper.addEventListener('dblclick', function(e) {
         }
 
         // Reset filter knob to center with 'R'
-if (e.code === 'KeyR' && !e.target.closest('input')) {
-    resetKnobToCenter();
-}
+        if (e.code === 'KeyR' && !e.target.closest('input')) {
+            resetFilterKnobToCenter();
+        }
+        
+        // Reset reverb knob with 'B'
+        if (e.code === 'KeyB' && !e.target.closest('input')) {
+            resetReverbKnobToDefault();
+        }
+        
+        // Toggle reverb with 'V'
+        if (e.code === 'KeyV' && !e.target.closest('input')) {
+            if (reverbToggleBtn) toggleReverb();
+        }
 
         // Arrow Up/Down for volume
         if (e.code === 'ArrowUp' && !e.target.closest('input')) {
              e.preventDefault();
              if (parseInt(volumeSlider.value) < 100) {
                  volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 5);
-                 volumeSlider.dispatchEvent(new Event('input')); // Trigger listener
+                 volumeSlider.dispatchEvent(new Event('input'));
              }
         }
         if (e.code === 'ArrowDown' && !e.target.closest('input')) {
              e.preventDefault();
              if (parseInt(volumeSlider.value) > 0) {
                 volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 5);
-                volumeSlider.dispatchEvent(new Event('input')); // Trigger listener
+                volumeSlider.dispatchEvent(new Event('input'));
              }
         }
 
-         // Arrow Left/Right for filter (using existing input listener)
-         if (e.code === 'ArrowLeft' && !e.target.closest('input')) {
-              e.preventDefault();
-              if (parseInt(filterSlider.value) > 0) {
-                 filterSlider.value = Math.max(0, parseInt(filterSlider.value) - 2); // Smaller steps
-                 filterSlider.dispatchEvent(new Event('input')); // Trigger listener
-              }
-         }
-         if (e.code === 'ArrowRight' && !e.target.closest('input')) {
-              e.preventDefault();
-              if (parseInt(filterSlider.value) < 100) {
-                  filterSlider.value = Math.min(100, parseInt(filterSlider.value) + 2); // Smaller steps
-                  filterSlider.dispatchEvent(new Event('input')); // Trigger listener
-              }
-         }
+        // Arrow Left/Right for filter
+        if (e.code === 'ArrowLeft' && !e.target.closest('input')) {
+            e.preventDefault();
+            if (parseInt(filterSlider.value) > 0) {
+                filterSlider.value = Math.max(0, parseInt(filterSlider.value) - 2);
+                filterSlider.dispatchEvent(new Event('input'));
+            }
+        }
+        if (e.code === 'ArrowRight' && !e.target.closest('input')) {
+            e.preventDefault();
+            if (parseInt(filterSlider.value) < 100) {
+                filterSlider.value = Math.min(100, parseInt(filterSlider.value) + 2);
+                filterSlider.dispatchEvent(new Event('input'));
+            }
+        }
     });
 });
+
+// Function to update ONLY the visual rotation of the reverb knob
+function updateReverbKnobVisual(value) {
+    const knobIndicator = document.querySelector('.reverb-container .knob-indicator');
+    if (knobIndicator) {
+        const rotationRange = 270; // e.g., -135 to +135 degrees
+        // Start at 7 o'clock position (-135 degrees) and move clockwise
+        // When value is 0, we want -135 degrees (7 o'clock)
+        // When value is 100, we want +135 degrees (5 o'clock)
+        const degree = -135 + (value / 100) * rotationRange;
+        knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
+    }
+}
