@@ -151,15 +151,15 @@ p.subtitle {
 
 .filter-container, .reverb-container {
     width: 100px;
-    height: 100px; 
+    height: 110px; 
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     flex-shrink: 0;
     background-color: transparent;
     padding: 0;
-    gap: 6px;
+    gap: 10px;
 }
 
 .reverb-container .knob-indicator {
@@ -221,35 +221,48 @@ p.subtitle {
 
 /* Filter and Reverb Toggle Buttons */
 .filter-toggle, .reverb-toggle {
-    width: 40px;
-    height: 20px;
-    font-size: 10px;
-    font-weight: bold;
+    width: 60px;
+    height: 28px;
+    font-size: 11px;
+    font-weight: 500;
     text-transform: lowercase;
-    background-color: var(--secondary-color);
-    color: var(--accent-color);
-    border: 1px solid var(--toggle-border);
-    border-radius: 4px;
+    background-color: var(--secondary-hover);
+    color: var(--date-color);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
     padding: 0;
-    margin-top: 10px;
+    margin-top: 15px;
     text-align: center;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
 }
 
 .filter-toggle.active, .reverb-toggle.active {
-    background-color: var(--accent-color);
-    color: var(--bg-color);
+    background-color: var(--secondary-hover);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 0 2px var(--accent-color);
+}
+
+/* Prevent browser or OS from applying its own styles to buttons */
+.filter-toggle, .reverb-toggle {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
 }
 
 .filter-toggle:hover, .reverb-toggle:hover {
-    background-color: var(--button-hover);
+    background-color: var(--secondary-hover);
+    color: var(--accent-color);
 }
 
 .filter-toggle.active:hover, .reverb-toggle.active:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--secondary-hover);
 }
 
 /* Hidden Sliders for Knobs */
@@ -563,7 +576,7 @@ p.subtitle {
 .theme-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     margin-bottom: 10px;
     position: absolute;
     top: 10px;
@@ -577,28 +590,32 @@ p.subtitle {
 
 .theme-toggle-slider {
     position: relative;
-    width: 50px;
-    height: 24px;
+    width: 36px;
+    height: 14px;
     background-color: var(--toggle-bg);
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid var(--toggle-border);
+    overflow: visible;
+    box-sizing: content-box;
 }
 
 .theme-toggle-knob {
     position: absolute;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     background-color: var(--toggle-knob);
     border-radius: 50%;
-    left: 2px;
+    left: 0;
     top: 50%;
     transform: translateY(-50%);
     transition: left 0.3s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+    border: none;
 }
 
 [data-theme="light"] .theme-toggle-knob {
-    left: 28px;
+    left: 14px;
 }
 
 /* ==================
@@ -665,8 +682,8 @@ footer {
     
     /* Keep button size consistent between mobile and desktop */
     .filter-toggle, .reverb-toggle {
-        width: 40px;
-        height: 20px;
+        width: 48px;
+        height: 24px;
         font-size: 10px;
     }
     
