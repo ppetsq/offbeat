@@ -1,11 +1,9 @@
 /* Offbeat.petsq.net - Refined Design */
 
-* {
-    cursor: default !important;
-}
-
-/* General Styles */
-:root {
+/* ==================
+   VARIABLE DEFINITIONS
+   ================== */
+   :root {
     /* Dark Theme (Default) */
     --bg-color: #050505;
     --text-color: #e0e0e0;
@@ -24,7 +22,7 @@
     --toggle-knob: #8B9D83;
     --toggle-bg: rgba(139, 157, 131, 0.2);
     --toggle-border: rgba(139, 157, 131, 0.3);
-    --center-marker: rgba(139, 157, 131, 0.5); /* Subtle center marker color */
+    --center-marker: rgba(139, 157, 131, 0.5);
 }
 
 /* Light Theme */
@@ -45,7 +43,14 @@
     --toggle-knob: #5A7350;
     --toggle-bg: rgba(90, 115, 80, 0.2);
     --toggle-border: rgba(90, 115, 80, 0.3);
-    --center-marker: rgba(90, 115, 80, 0.5); /* Subtle center marker color */
+    --center-marker: rgba(90, 115, 80, 0.5);
+}
+
+/* ==================
+   GENERAL STYLES
+   ================== */
+* {
+    cursor: default !important;
 }
 
 body {
@@ -58,19 +63,29 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Container for better spacing */
 .container {
     max-width: 800px;
     margin: 0 auto;
 }
 
-/* Header */
+a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+a:hover {
+    color: var(--accent-hover);
+}
+
+/* ==================
+   HEADER STYLES
+   ================== */
 header {
     margin-bottom: 40px;
     text-align: left;
 }
 
-/* Header Content Layout */
 .header-content {
     display: flex;
     align-items: flex-start;
@@ -97,47 +112,6 @@ header {
     display: block;
 }
 
-/* Effect Controls Container */
-.effect-controls {
-    display: flex;
-    flex-direction: row;
-    gap: 0px;
-    align-items: flex-start;
-}
-
-/* Filter Container in Header */
-.filter-container {
-    width: 100px;
-    height: 100px; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background-color: transparent;
-    padding: 0;
-    gap: 6px;
-}
-
-/* Reverb Container in Header */
-.reverb-container {
-    width: 100px;
-    height: 100px; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background-color: transparent;
-    padding: 0;
-    gap: 6px;
-}
-
-.reverb-container .knob-indicator {
-    /* -135 degrees is 7 o'clock position */
-    transform: translateX(-50%) rotate(-135deg);
-}
-
 .text-content {
     flex-grow: 1;
     text-align: left;
@@ -153,10 +127,6 @@ h1 {
     color: var(--text-color);
 }
 
-@media (max-width: 600px) {
-    h1 { font-size: 1.5rem; line-height: 1.05; }
-}
-
 p.subtitle {
     font-size: 0.95rem;
     color: var(--date-color);
@@ -169,18 +139,165 @@ p.subtitle {
     font-size: 0.9rem;
 }
 
-/* Links */
-a {
+/* ==================
+   EFFECT CONTROLS STYLES
+   ================== */
+.effect-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    align-items: flex-start;
+}
+
+.filter-container, .reverb-container {
+    width: 100px;
+    height: 100px; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background-color: transparent;
+    padding: 0;
+    gap: 6px;
+}
+
+.reverb-container .knob-indicator {
+    transform: translateX(-50%) rotate(-135deg);
+}
+
+/* Knob Styles */
+.knob-wrapper {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    margin: 0;
+    touch-action: none;
+    aspect-ratio: 1 / 1;
+}
+
+.knob-visual {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: var(--secondary-hover);
+    border: 2px solid var(--border-color);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.knob-visual::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 5px;
+    background-color: var(--center-marker);
+    border-radius: 1px;
+}
+
+.knob-indicator {
+    width: 4px;
+    height: 40%;
+    background-color: var(--slider-fill);
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform-origin: 50% 100%;
+    border-radius: 2px;
+    transform: translateX(-50%) rotate(0deg);
+    transition: transform 0.1s linear;
+    pointer-events: none;
+}
+
+/* Filter and Reverb Toggle Buttons */
+.filter-toggle, .reverb-toggle {
+    width: 40px;
+    height: 20px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: lowercase;
+    background-color: var(--secondary-color);
     color: var(--accent-color);
-    text-decoration: none;
+    border: 1px solid var(--toggle-border);
+    border-radius: 4px;
+    padding: 0;
+    margin-top: 10px;
+    text-align: center;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-a:hover {
-    color: var(--accent-hover);
+.filter-toggle.active, .reverb-toggle.active {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
 }
 
-/* Master Controls */
+.filter-toggle:hover, .reverb-toggle:hover {
+    background-color: var(--button-hover);
+}
+
+.filter-toggle.active:hover, .reverb-toggle.active:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Hidden Sliders for Knobs */
+.filter-slider, .reverb-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: inherit;
+    opacity: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    outline: none;
+    border: none;
+}
+
+.filter-slider::-webkit-slider-runnable-track, 
+.filter-slider::-moz-range-track,
+.filter-slider::-ms-track,
+.reverb-slider::-webkit-slider-runnable-track, 
+.reverb-slider::-moz-range-track,
+.reverb-slider::-ms-track {
+    background: transparent; 
+    border: none;
+}
+
+.filter-slider::-webkit-slider-thumb,
+.filter-slider::-moz-range-thumb,
+.filter-slider::-ms-thumb,
+.reverb-slider::-webkit-slider-thumb,
+.reverb-slider::-moz-range-thumb,
+.reverb-slider::-ms-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent; 
+    border: none;
+    width: 1px; 
+    height: 1px;
+}
+
+/* ==================
+   MASTER VOLUME CONTROL
+   ================== */
 .master-controls {
     display: flex;
     max-width: 650px;
@@ -255,136 +372,9 @@ a:hover {
     cursor: pointer;
 }
 
-/* Knob Simulation Styles */
-.knob-wrapper {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin: 0;
-    touch-action: none;
-}
-
-.knob-visual {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background-color: var(--secondary-hover);
-    border: 2px solid var(--border-color);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-/* More subtle center marker */
-.knob-visual::after {
-    content: '';
-    position: absolute;
-    top: -2px; /* Moved closer to edge */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 1px; /* Thinner */
-    height: 5px; /* Shorter */
-    background-color: var(--center-marker); /* Using the new subtle color */
-    border-radius: 1px;
-}
-
-.knob-indicator {
-    width: 4px;
-    height: 40%;
-    background-color: var(--slider-fill);
-    position: absolute;
-    top: 10%;
-    left: 50%;
-    transform-origin: 50% 100%;
-    border-radius: 2px;
-    transform: translateX(-50%) rotate(0deg);
-    transition: transform 0.1s linear;
-    pointer-events: none;
-}
-
-/* Hidden Slider for Knob */
-.filter-slider, .reverb-slider {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    cursor: inherit;
-    opacity: 0;
-    z-index: 2;
-    margin: 0;
-    padding: 0;
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-    outline: none;
-    border: none;
-}
-
-.filter-slider::-webkit-slider-runnable-track, 
-.filter-slider::-moz-range-track,
-.filter-slider::-ms-track,
-.reverb-slider::-webkit-slider-runnable-track, 
-.reverb-slider::-moz-range-track,
-.reverb-slider::-ms-track {
-    background: transparent; 
-    border: none;
-}
-
-.filter-slider::-webkit-slider-thumb,
-.filter-slider::-moz-range-thumb,
-.filter-slider::-ms-thumb,
-.reverb-slider::-webkit-slider-thumb,
-.reverb-slider::-moz-range-thumb,
-.reverb-slider::-ms-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent; 
-    border: none;
-    width: 1px; 
-    height: 1px;
-}
-
-/* Filter and Reverb Toggle Buttons */
-.filter-toggle, .reverb-toggle {
-    width: 40px;
-    height: 20px;
-    font-size: 10px;
-    font-weight: bold;
-    text-transform: lowercase;
-    background-color: var(--secondary-color);
-    color: var(--accent-color);
-    border: 1px solid var(--toggle-border);
-    border-radius: 4px;
-    padding: 0;
-    margin-top: 10px !important; /* Increased spacing from knob */
-    text-align: center;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.filter-toggle.active, .reverb-toggle.active {
-    background-color: var(--accent-color);
-    color: var(--bg-color);
-}
-
-.filter-toggle:hover, .reverb-toggle:hover {
-    background-color: var(--button-hover);
-}
-
-.filter-toggle.active:hover, .reverb-toggle.active:hover {
-    background-color: var(--accent-hover);
-}
-
-/* File List Styling */
+/* ==================
+   FILE LIST STYLES
+   ================== */
 .file-list {
     max-width: 650px;
     margin: auto;
@@ -464,6 +454,7 @@ a:hover {
     justify-content: center;
 }
 
+/* Featured Tag Styles */
 .file-featured {
     position: relative;
 }
@@ -493,15 +484,9 @@ a:hover {
     display: none; /* Hide by default */
 }
 
-/* Footer */
-footer {
-    margin-top: 60px;
-    font-size: 0.85rem;
-    color: var(--date-color);
-    text-align: center;
-}
-
-/* Expanded Player Styles */
+/* ==================
+   PLAYER CONTROLS
+   ================== */
 .expanded-player {
     display: none;
     padding: 0 20px 15px 20px;
@@ -572,7 +557,9 @@ footer {
     padding: 0;
 }
 
-/* Theme Toggle Styles */
+/* ==================
+   THEME TOGGLE
+   ================== */
 .theme-toggle {
     display: flex;
     align-items: center;
@@ -590,10 +577,10 @@ footer {
 
 .theme-toggle-slider {
     position: relative;
-    width: 38px;
-    height: 14px;
+    width: 50px;
+    height: 24px;
     background-color: var(--toggle-bg);
-    border-radius: 7px;
+    border-radius: 12px;
     border: 1px solid var(--toggle-border);
 }
 
@@ -603,83 +590,106 @@ footer {
     height: 20px;
     background-color: var(--toggle-knob);
     border-radius: 50%;
-    left: 0;
-    top: -4px;
+    left: 2px;
+    top: 50%;
+    transform: translateY(-50%);
     transition: left 0.3s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="light"] .theme-toggle-knob {
-    left: 18px;
+    left: 28px;
 }
 
-/* Media queries for mobile */
+/* ==================
+   FOOTER STYLES
+   ================== */
+footer {
+    margin-top: 60px;
+    font-size: 0.85rem;
+    color: var(--date-color);
+    text-align: center;
+}
+
+/* ==================
+   MOBILE STYLES
+   ================== */
 @media (max-width: 600px) {
     /* Adjust header layout for mobile */
+    body {
+        padding: 30px 15px;
+    }
+    
+    h1 { 
+        font-size: 1.5rem; 
+        line-height: 1.05; 
+    }
+    
     .header-content {
         flex-direction: column;
         align-items: center;
-        gap: 15px;
+        gap: 20px;
         text-align: center;
     }
     
     .logo {
         width: 80px;
         height: 80px;
-        /* Remove flex-basis to prevent stretching */
-        flex-basis: auto;
-        /* Center the logo */
         margin: 0 auto;
     }
     
+    /* Fix for effect controls on mobile */
     .effect-controls {
         display: flex;
         flex-direction: row;
         justify-content: center;
         width: 100%;
-        gap: 20px;
+        gap: 30px;
         margin-top: 10px;
         order: 1;
     }
     
+    /* Keep knobs perfectly round on mobile */
     .filter-container, .reverb-container {
-        width: 70px;
-        height: 90px;
+        width: 80px;
+        height: 100px;
     }
     
+    /* Ensure knobs remain round by maintaining aspect ratio */
     .knob-wrapper {
         width: 60px;
         height: 60px;
+        min-width: 60px;
+        min-height: 60px;
     }
     
+    /* Keep button size consistent between mobile and desktop */
     .filter-toggle, .reverb-toggle {
-        width: 36px;
+        width: 40px;
         height: 20px;
-        font-size: 8px;
-        margin-top: 10px;
+        font-size: 10px;
     }
     
     .text-content {
         order: 2;
         text-align: center;
-        margin-top: 20px;
+        margin-top: 10px;
         flex-basis: 100%;
     }
-
+    
     .player-controls {
-        gap: 10px;
+        gap: 15px;
     }
-
+    
     .control-btn {
-        padding: 4px 8px;
+        padding: 6px 12px;
         font-size: 0.75rem;
     }
-
+    
     .theme-toggle {
         position: static;
         justify-content: center;
-        margin-top: 20px;
-        margin-bottom: 20px;
+        margin: 20px 0;
     }
     
     .master-controls {
