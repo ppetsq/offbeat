@@ -10,386 +10,114 @@ document.addEventListener("DOMContentLoaded", function() {
     const filterToggleBtn = document.querySelector('.filter-toggle');
     const reverbToggleBtn = document.querySelector('.reverb-toggle');
     const themeToggle = document.querySelector(".theme-toggle-slider");
-    const waveformCanvas = document.getElementById('waveformCanvas');
+    const waveformCanvas = document.getElementById('waveformCanvas'); // Get canvas element
 
     // --- State Variables ---
-    let currentPlayingItem = null;
     let filterActive = false;
     let reverbActive = false;
+    let currentPlayingItem = null;
+    let currentLowcutFreq = 200;   // Default reverb lowcut frequency (Hz)
     let isAudioContextInitialized = false;
-    let visualizerAnimationId = null;
-    let currentLowcutFreq = 200;
-    let effectsActive = true;
-    
+    let visualizerAnimationId = null; // To control the animation loop
+
+    // --- Constants ---
+    const REVERB_LOWCUT_MIN = 80;  // Minimum lowcut frequency (Hz)
+    const REVERB_LOWCUT_MAX = 800; // Maximum lowcut frequency (Hz)
+    const SKIP_TIME = 30;          // Seek time in seconds
+    const sensitivity = 0.15;    // Knob drag sensitivity
+
     // --- Web Audio API Variables ---
     let audioContext;
-    let gainNode;
-    let filterNode;
-    let analyserNode;
-    let audioSourceNode;
-    let reverbSendNode;
-    let reverbLowcutNode;
-    let convolver;
-    let reverbReturnNode;
-    
+    let gainNode;         // Master volume
+    let filterNode;       // Master filter (LP/HP)
+    let convolver;        // Reverb effect node
+    let reverbSendNode;   // Gain node to control reverb send level
+    let reverbLowcutNode; // Lowcut filter for reverb input
+    let reverbReturnNode; // Gain node for reverb return (wet signal)
+    let analyserNode;     // Node for waveform analysis
+
     // --- Canvas Variables ---
     let canvas, canvasCtx, dataArray, bufferLength;
 
-    // --- Constants ---
-    const SKIP_TIME = 30;
-    const REVERB_LOWCUT_MIN = 80;
-    const REVERB_LOWCUT_MAX = 800;
-    const sensitivity = 0.15;
-
     // =====================================
-    // Enable console timestamps for better debugging
+    // Initialize Canvas Context
     // =====================================
-    const originalConsoleLog = console.log;
-    console.log = function() {
-        const time = new Date().toTimeString().split(' ')[0];
-        originalConsoleLog.apply(console, [`[${time}]`, ...arguments]);
-    };
-
-    // =====================================
-    // PROXY URL HANDLING 
-    // =====================================
-    
-    // Function to proxy audio URLs to avoid CORS issues
-    function getProxiedUrl(originalUrl) {
-        // Skip if already proxied
-        if (originalUrl.includes('allorigins') || originalUrl.includes('cors-anywhere')) {
-            return originalUrl;
+    if (waveformCanvas) {
+        canvas = waveformCanvas;
+        canvasCtx = canvas.getContext('2d');
+        // Set initial canvas drawing buffer size
+        try {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        } catch (e) {
+            console.error("Error setting initial canvas size:", e);
         }
-        
-        // Try different proxies based on availability
-        // This one has high reliability for audio files
-        return `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+    } else {
+        console.warn("Waveform canvas element ('waveformCanvas') not found!");
     }
-    
-    // =====================================
-    // CORE PLAYER FUNCTIONS
-    // =====================================
-    
-    // Play a track
-    function playTrack(item) {
-        const link = item.querySelector(".episode-link");
-        if (!link) return;
-        
-        // Get original and proxied URLs
-        const originalSrc = link.getAttribute("data-original-url") || link.getAttribute("href");
-        const proxiedSrc = getProxiedUrl(originalSrc);
-        
-        console.log("Playing track:", originalSrc);
-        console.log("Using proxied URL:", proxiedSrc);
-        
-        // Toggle play/pause if clicking on current item
-        if (currentPlayingItem === item) {
-            if (audioPlayer.paused) {
-                audioPlayer.play().catch(e => console.error("Play error:", e));
-            } else {
-                audioPlayer.pause();
-            }
-            updateIcon(item);
-            return;
-        }
 
-        // Reset UI for all tracks
-        resetAllItemsVisuals();
-        
-        // Set new current item
-        currentPlayingItem = item;
-        
-        // Apply volume
-        const volumePercent = parseInt(volumeSlider.value);
-        audioPlayer.volume = volumePercent / 100;
-        
-        // Set source and play
-        audioPlayer.src = proxiedSrc;
-        audioPlayer.load();
-        
-        const playPromise = audioPlayer.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(e => {
-                console.error("Error playing audio:", e);
-                
-                // Special fallback for user interaction requirement
-                if (e.name === 'NotAllowedError') {
-                    alert("Please click again to start playback. This is required by your browser for audio to work.");
-                }
-            });
-        }
-        
-        // Update metadata and UI
-        const trackName = item.querySelector('.file-number')?.textContent || '';
-        const episodeDate = item.querySelector('.file-date')?.textContent || '';
-        updateMediaSessionMetadata(trackName, episodeDate);
-        
-        item.classList.add("expanded");
-        updateIcon(item);
-        const timeIndicator = item.querySelector(".time-indicator");
-        if (timeIndicator) {
-            timeIndicator.style.display = "block";
-        }
-        
-        // Initialize audio context for effects after a delay
-        if (document.visibilityState === 'visible' && !isAudioContextInitialized) {
-            setTimeout(() => {
+    // =====================================
+    // Mobile Background Playback Setup
+    // =====================================
+    function enableBackgroundPlayback() {
+        // Set audio element attributes for background playback
+        audioPlayer.setAttribute('playsinline', ''); // iOS playback within page
+        audioPlayer.setAttribute('webkit-playsinline', ''); // Older iOS versions
+        audioPlayer.setAttribute('preload', 'metadata'); // Better than 'none' for playback
+
+        // Prevent browser from pausing audio when inactive
+        document.addEventListener('visibilitychange', function() {
+            // Keep playing even when the page is hidden
+            if (document.visibilityState === 'hidden' && !audioPlayer.paused) {
+                // Force continue playing in background
                 try {
-                    initializeAudioContext();
-                } catch (err) {
-                    console.error("Failed to initialize audio effects:", err);
-                    // Basic playback will still work
+                    const silentPromise = audioPlayer.play();
+                    if (silentPromise !== undefined) {
+                        silentPromise.catch(e => {
+                            console.log('Background play prevented by browser', e);
+                        });
+                    }
+                } catch (e) {
+                    console.log('Error keeping audio playing in background', e);
                 }
-            }, 500);
-        }
-    }
-    
-    // Reset all playlist items to initial state
-    function resetAllItemsVisuals() {
-        document.querySelectorAll(".file-item").forEach(item => {
-            item.classList.remove("expanded");
-            
-            const iconElement = item.querySelector(".file-icon svg");
-            if (iconElement) iconElement.setAttribute("data-icon", "play");
-            
-            const timeIndicator = item.querySelector(".time-indicator");
-            if (timeIndicator && item !== currentPlayingItem) {
-                timeIndicator.style.display = "none";
-                timeIndicator.textContent = "00:00 / 00:00";
             }
-            
-            const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
-            if (expandedPlayBtn) expandedPlayBtn.setAttribute("data-icon", "play");
-            
-            const progressFilled = item.querySelector(".progress-filled");
-            if (progressFilled) progressFilled.style.width = "0%";
         });
     }
-    
-    // Update play/pause icons
-    function updateIcon(item) {
-        if (!item) return;
-        
-        const iconElement = item.querySelector(".file-icon svg");
-        const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
-        const isPaused = audioPlayer.paused;
-        const iconName = isPaused ? "play" : "pause";
-        
-        if (iconElement) iconElement.setAttribute("data-icon", iconName);
-        if (expandedPlayBtn) expandedPlayBtn.setAttribute("data-icon", iconName);
-    }
-    
-    // Update track time display and progress bar
-    function updateTime() {
-        if (!currentPlayingItem || !audioPlayer.duration || isNaN(audioPlayer.duration)) return;
-        
-        const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
-        const currentTimeEl = currentPlayingItem.querySelector(".current-time");
-        const durationTimeEl = currentPlayingItem.querySelector(".duration-time");
-        const progressFilled = currentPlayingItem.querySelector(".progress-filled");
-        
-        const currentTime = formatTime(audioPlayer.currentTime);
-        const duration = formatTime(audioPlayer.duration);
-        
-        if (timeIndicator) timeIndicator.textContent = `${currentTime} / ${duration}`;
-        if (currentTimeEl) currentTimeEl.textContent = currentTime;
-        if (durationTimeEl) durationTimeEl.textContent = duration;
-        
-        if (progressFilled && !isNaN(audioPlayer.duration)) {
-            const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-            progressFilled.style.width = `${progressPercentage}%`;
-        }
-        
-        // Update Media Session API position
-        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-            navigator.mediaSession.setPositionState({
-                duration: audioPlayer.duration || 0,
-                playbackRate: audioPlayer.playbackRate,
-                position: audioPlayer.currentTime || 0
-            });
-        }
-    }
 
-    // =====================================
-    // BACKGROUND PLAYBACK SUPPORT
-    // =====================================
-    
-    // Set up background playback support
-    function setupBackgroundPlayback() {
-        // Essential attributes for mobile playback
-        audioPlayer.setAttribute('playsinline', '');
-        audioPlayer.setAttribute('webkit-playsinline', '');
-        audioPlayer.setAttribute('preload', 'metadata');
-        
-        // Set up Media Session API
-        setupMediaSession();
-        
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        
-        // Mobile browsers require user interaction
-        document.addEventListener('touchstart', function handleFirstTouch() {
-            document.removeEventListener('touchstart', handleFirstTouch);
-            if (audioPlayer) {
-                audioPlayer.load();
-            }
-        }, { once: true });
-    }
-    
-    // Handle visibility changes 
-    function handleVisibilityChange() {
-        if (document.visibilityState === 'hidden') {
-            // Page going to background
-            if (!audioPlayer.paused) {
-                console.log("Page hidden, preserving background playback");
-                disableEffects();
-            }
-        } else if (document.visibilityState === 'visible') {
-            // Page becoming visible again
-            if (!audioPlayer.paused) {
-                console.log("Page visible again, re-enabling effects if needed");
-                
-                if (!isAudioContextInitialized) {
-                    setTimeout(() => {
-                        try {
-                            initializeAudioContext();
-                        } catch (e) {
-                            console.error("Failed to initialize audio context:", e);
-                        }
-                    }, 300);
-                } else if (!effectsActive) {
-                    enableEffects();
-                }
-            }
-        }
-    }
-    
-    // Disable audio effects for background playback
-    function disableEffects() {
-        if (effectsActive && isAudioContextInitialized && audioContext) {
-            try {
-                // Save volume setting
-                const volumePercent = parseInt(volumeSlider.value);
-                
-                // Disconnect audio processing
-                if (audioSourceNode) {
-                    try {
-                        audioSourceNode.disconnect();
-                    } catch (e) {
-                        console.log("Disconnect error:", e);
-                    }
-                }
-                
-                // Set direct volume
-                audioPlayer.volume = volumePercent / 100;
-                
-                // Stop visualizer
-                if (visualizerAnimationId) {
-                    cancelAnimationFrame(visualizerAnimationId);
-                    visualizerAnimationId = null;
-                }
-                
-                effectsActive = false;
-                console.log("Effects disabled for background playback");
-            } catch (e) {
-                console.error("Error disabling effects:", e);
-            }
-        }
-    }
-    
-    // Re-enable audio effects
-    function enableEffects() {
-        if (!effectsActive && !audioPlayer.paused && isAudioContextInitialized) {
-            try {
-                // Resume audio context if needed
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                // Reconnect audio graph
-                try {
-                    reconnectAudioGraph();
-                    
-                    // Apply effects
-                    applyVolume();
-                    if (filterActive) applyAudioFilter();
-                    if (reverbActive) applyReverb();
-                    
-                    // Restart visualizer
-                    if (canvasCtx && !visualizerAnimationId) {
-                        drawVisualizer();
-                    }
-                    
-                    effectsActive = true;
-                    console.log("Effects re-enabled");
-                } catch (e) {
-                    console.error("Error reconnecting audio:", e);
-                }
-            } catch (e) {
-                console.error("Error enabling effects:", e);
-            }
-        }
-    }
-    
-    // Reconnect audio graph
-    function reconnectAudioGraph() {
-        if (!audioContext) return;
-        
-        try {
-            // Create new source node
-            const source = audioContext.createMediaElementSource(audioPlayer);
-            audioSourceNode = source;
-            
-            // Connect main path
-            source.connect(gainNode);
-            gainNode.connect(analyserNode);
-            analyserNode.connect(filterNode);
-            filterNode.connect(audioContext.destination);
-            
-            // Connect reverb path
-            source.connect(reverbSendNode);
-            reverbSendNode.connect(reverbLowcutNode);
-            reverbLowcutNode.connect(convolver);
-            convolver.connect(reverbReturnNode);
-            reverbReturnNode.connect(gainNode);
-            
-            console.log("Audio graph reconnected");
-        } catch (e) {
-            console.error("Graph connection error:", e);
-            throw e;
-        }
-    }
-    
-    // Setup Media Session API
+    // Set up Media Session API for system media controls
     function setupMediaSession() {
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', () => {
+            navigator.mediaSession.setActionHandler('play', function() {
                 if (currentPlayingItem) {
-                    audioPlayer.play().catch(e => console.error("Media session play error:", e));
+                    audioPlayer.play().catch(error => console.error("Error playing audio:", error));
                     updateIcon(currentPlayingItem);
                 }
             });
             
-            navigator.mediaSession.setActionHandler('pause', () => {
+            navigator.mediaSession.setActionHandler('pause', function() {
                 audioPlayer.pause();
-                if (currentPlayingItem) updateIcon(currentPlayingItem);
+                if (currentPlayingItem) {
+                    updateIcon(currentPlayingItem);
+                }
             });
             
-            navigator.mediaSession.setActionHandler('seekbackward', () => {
-                audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
-                updateTime();
+            navigator.mediaSession.setActionHandler('seekbackward', function() {
+                if (audioPlayer && !isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
+                    updateTime();
+                }
             });
             
-            navigator.mediaSession.setActionHandler('seekforward', () => {
-                if (audioPlayer.duration) {
+            navigator.mediaSession.setActionHandler('seekforward', function() {
+                if (audioPlayer && !isNaN(audioPlayer.duration)) {
                     audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
                     updateTime();
                 }
             });
         }
     }
-    
-    // Update media session metadata
+
+    // Update media session metadata when track changes
     function updateMediaSessionMetadata(trackName, episodeDate) {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
@@ -404,502 +132,218 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // =====================================
-    // AUDIO EFFECTS SETUP
+    // Web Audio API Initialization
     // =====================================
-    
-    // Initialize Web Audio API
     function initializeAudioContext() {
         if (isAudioContextInitialized) return;
-        
+
         try {
-            // Create audio context
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            console.log("Created Audio Context:", audioContext.state);
-            
-            // Create nodes
+
+            // Create core nodes
             gainNode = audioContext.createGain();
             filterNode = audioContext.createBiquadFilter();
-            analyserNode = audioContext.createAnalyser();
+            analyserNode = audioContext.createAnalyser(); // Create Analyser
+
+            // Create reverb nodes
             reverbSendNode = audioContext.createGain();
             reverbLowcutNode = audioContext.createBiquadFilter();
             convolver = audioContext.createConvolver();
             reverbReturnNode = audioContext.createGain();
-            
-            try {
-                // Get audio source
-                const source = audioContext.createMediaElementSource(audioPlayer);
-                audioSourceNode = source;
-                
-                // Connect main path
-                source.connect(gainNode);
-                
-                // Connect reverb send path
-                source.connect(reverbSendNode);
-                
-                console.log("Audio source connected successfully");
-            } catch (sourceError) {
-                console.error("Error creating audio source:", sourceError);
-                // Try to recover
-                if (sourceError.message && sourceError.message.includes("already been connected")) {
-                    console.log("Audio element already connected - trying alternate approach");
-                }
-                throw sourceError;
-            }
-            
-            // Connect the rest of the graph
-            gainNode.connect(analyserNode);
-            analyserNode.connect(filterNode);
-            filterNode.connect(audioContext.destination);
-            
+
+            // Get audio source
+            const audioSourceNode = audioContext.createMediaElementSource(audioPlayer);
+
+            // === Connect Audio Graph ===
+            // Main signal path
+            audioSourceNode.connect(gainNode);
+
+            // Reverb send path (parallel to main path, before main gain affects send)
+            audioSourceNode.connect(reverbSendNode);
             reverbSendNode.connect(reverbLowcutNode);
             reverbLowcutNode.connect(convolver);
             convolver.connect(reverbReturnNode);
-            reverbReturnNode.connect(gainNode);
-            
-            // Configure nodes
-            analyserNode.fftSize = 2048;
-            bufferLength = analyserNode.frequencyBinCount;
-            dataArray = new Uint8Array(bufferLength);
-            
+            reverbReturnNode.connect(gainNode); // Reverb returns (mixes) at the main gain node
+
+            // Connect Analyser *after* gain (to reflect volume), *before* filter
+            gainNode.connect(analyserNode);
+            analyserNode.connect(filterNode);
+
+            // Final connection to output
+            filterNode.connect(audioContext.destination);
+
+            // === Configure Nodes ===
+            // Analyser Setup
+            analyserNode.fftSize = 2048; // Adjust detail level (power of 2)
+            bufferLength = analyserNode.frequencyBinCount; // = fftSize / 2
+            dataArray = new Uint8Array(bufferLength); // Array for waveform data
+
+            // Reverb Lowcut Filter Setup
             reverbLowcutNode.type = 'highpass';
             reverbLowcutNode.frequency.value = currentLowcutFreq;
             reverbLowcutNode.Q.value = 0.7;
+
+            // Reverb Initial State (Off)
             reverbSendNode.gain.value = 0;
-            reverbReturnNode.gain.value = 1.4;
-            createReverbImpulse();
-            
+            reverbReturnNode.gain.value = 1.4; // Slightly boost return for presence when active
+            createReverbImpulse(); // Generate the reverb sound
+
+            // Filter Initial State (Bypass)
             filterNode.type = 'allpass';
             filterNode.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
             filterNode.Q.setValueAtTime(1, audioContext.currentTime);
-            
-            // Apply volume
+
+            // Apply Initial Volume
             applyVolume();
-            
+
             isAudioContextInitialized = true;
-            effectsActive = true;
-            console.log("Audio Context successfully initialized");
-            
-            // Start visualizer if playing
-            if (!audioPlayer.paused && canvasCtx) {
-                drawVisualizer();
-            }
+            console.log("Audio Context Initialized with Send-Based Reverb, Lowcut, Filter, and Analyser");
         } catch (e) {
-            console.error("Failed to initialize Web Audio API:", e);
-            isAudioContextInitialized = false;
-            effectsActive = false;
+            console.error("Web Audio API is not supported or could not be initialized.", e);
+            alert("Sorry, your browser doesn't support the necessary Web Audio features for this site.");
         }
     }
-    
-    // Resume AudioContext
+
+    // Function to resume AudioContext if suspended (required by browsers)
     function resumeAudioContext() {
         if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log("Audio context resumed:", audioContext.state);
-            }).catch(e => {
-                console.error("Error resuming audio context:", e);
-            });
+            audioContext.resume().catch(e => console.error("Error resuming AudioContext:", e));
         }
     }
-    
+
     // =====================================
-    // AUDIO EFFECTS: REVERB
+    // Reverb Impulse Response Generation
     // =====================================
-    
-    // Generate reverb impulse
     function createReverbImpulse() {
         if (!audioContext || !convolver) return;
-        
         const sampleRate = audioContext.sampleRate;
         const length = 1.2 * sampleRate;
         const impulse = audioContext.createBuffer(2, length, sampleRate);
         const left = impulse.getChannelData(0);
         const right = impulse.getChannelData(1);
-        
+        const attack = 0.002, earlyDecay = 0.02, lateDecay = 0.9;
+
         for (let i = 0; i < length; i++) {
             const time = i / length;
             let amplitude;
-            
-            if (time < 0.1) {
-                // Early reflections
-                amplitude = Math.pow((1 - time / 0.1), 0.02) * 1.3;
-            } else {
-                // Late reflections
-                amplitude = Math.pow((1 - (time - 0.1) / 0.9), 0.9) * 0.5;
+            if (time < 0.1) { // Enhanced early reflections
+                amplitude = Math.pow((1 - time / 0.1), earlyDecay) * 1.3;
+            } else { // Sustained late reflections
+                amplitude = Math.pow((1 - (time - 0.1) / 0.9), lateDecay) * 0.5;
             }
-            
             left[i] = (Math.random() * 2 - 1) * amplitude;
             right[i] = (Math.random() * 2 - 1) * amplitude;
         }
-        
-        // Smoothing
+
+        // Smoothing for stereo width and brightness
         const smoothL = 0.1, smoothR = 0.12;
         for (let i = 1; i < length; i++) {
             left[i] = left[i] * (1 - smoothL) + left[i-1] * smoothL;
             right[i] = right[i] * (1 - smoothR) + right[i-1] * smoothR;
         }
-        
-        // Preserve high frequencies
-        for (let i = length - 2; i >= 0; i--) {
+        for (let i = length - 2; i >= 0; i--) { // Preserve high frequencies
             left[i] = left[i] * 0.9 + left[i+1] * 0.1;
             right[i] = right[i] * 0.9 + right[i+1] * 0.1;
         }
-        
+
         convolver.buffer = impulse;
-        console.log("Reverb impulse created");
+        console.log("Enhanced club/DJ-style reverb impulse created.");
     }
-    
-    // Toggle reverb
-    function toggleReverb() {
-        if (!isAudioContextInitialized) {
-            try {
-                initializeAudioContext();
-            } catch (e) {
-                console.error("Cannot initialize audio for reverb:", e);
-                return;
-            }
-        }
-        
-        if (!effectsActive) {
-            console.log("Effects not active, can't toggle reverb");
-            return;
-        }
-        
-        reverbActive = !reverbActive;
-        reverbToggleBtn.classList.toggle('active', reverbActive);
-        applyReverb();
-    }
-    
-    // Apply reverb settings
-    function applyReverb() {
-        if (!reverbSendNode || !isAudioContextInitialized || !effectsActive) return;
-        
-        resumeAudioContext();
-        
-        const value = parseInt(reverbSlider.value);
-        let sendAmount = 0;
-        
-        if (reverbActive) {
-            sendAmount = Math.pow(value / 100, 1.1) * 1.5;
-        }
-        
-        reverbSendNode.gain.linearRampToValueAtTime(
-            sendAmount, 
-            audioContext.currentTime + 0.05
-        );
-    }
-    
-    // Adjust reverb lowcut
-    function adjustReverbLowcut(direction) {
-        if (!reverbLowcutNode || !isAudioContextInitialized || !effectsActive) return;
-        
-        resumeAudioContext();
-        
-        let step = currentLowcutFreq * 0.1;
-        if (direction === 'up') {
-            currentLowcutFreq = Math.min(REVERB_LOWCUT_MAX, currentLowcutFreq + step);
-        } else {
-            currentLowcutFreq = Math.max(REVERB_LOWCUT_MIN, currentLowcutFreq - step);
-        }
-        
-        reverbLowcutNode.frequency.linearRampToValueAtTime(
-            currentLowcutFreq, 
-            audioContext.currentTime + 0.05
-        );
-    }
-    
-    // Update reverb knob visual
-    function updateReverbKnobVisual(value) {
-        const knobIndicator = document.querySelector('.reverb-container .knob-indicator');
-        if (knobIndicator) {
-            const rotationRange = 270;
-            const degree = -135 + (value / 100) * rotationRange;
-            knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
-        }
-    }
-    
-    // Reset reverb
-    function resetReverbKnobToDefault() {
-        reverbSlider.value = 0;
-        reverbSlider.dispatchEvent(new Event('input'));
-    }
-    
+
     // =====================================
-    // AUDIO EFFECTS: FILTER
+    // Waveform Visualizer Drawing Function
     // =====================================
-    
-    // Toggle filter
-    function toggleFilter() {
-        if (!isAudioContextInitialized) {
-            try {
-                initializeAudioContext();
-            } catch (e) {
-                console.error("Cannot initialize audio for filter:", e);
-                return;
-            }
-        }
-        
-        if (!effectsActive) {
-            console.log("Effects not active, can't toggle filter");
-            return;
-        }
-        
-        filterActive = !filterActive;
-        filterToggleBtn.classList.toggle('active', filterActive);
-        applyAudioFilter();
-    }
-    
-    // Apply filter
-    function applyAudioFilter() {
-        if (!filterNode || !isAudioContextInitialized || !effectsActive) return;
-        
-        resumeAudioContext();
-        
-        if (!filterActive) {
-            // Bypass
-            filterNode.type = 'allpass';
-            filterNode.frequency.setValueAtTime(
-                audioContext.sampleRate / 2, 
-                audioContext.currentTime
-            );
-            filterNode.Q.setValueAtTime(1, audioContext.currentTime);
-            return;
-        }
-        
-        // Apply filter
-        const value = parseInt(filterSlider.value);
-        const maxFreq = audioContext.sampleRate / 2;
-        const minFreq = 20;
-        const now = audioContext.currentTime;
-        const transitionTime = 0.02;
-        
-        if (value === 50) {
-            // Center - neutral
-            filterNode.type = 'lowpass';
-            filterNode.frequency.linearRampToValueAtTime(maxFreq * 0.99, now + transitionTime);
-            filterNode.Q.linearRampToValueAtTime(1, now + transitionTime);
-        } else if (value < 50) {
-            // Low-pass
-            filterNode.type = 'lowpass';
-            const normalizedValue = (49 - value) / 49;
-            const freq = minFreq * Math.pow(maxFreq / minFreq, 1 - normalizedValue);
-            filterNode.frequency.linearRampToValueAtTime(Math.max(minFreq, freq), now + transitionTime);
-            filterNode.Q.linearRampToValueAtTime(1 + normalizedValue * 5, now + transitionTime);
-        } else {
-            // High-pass
-            filterNode.type = 'highpass';
-            const normalizedValue = (value - 51) / 49;
-            const freq = minFreq * Math.pow(maxFreq / minFreq, normalizedValue);
-            filterNode.frequency.linearRampToValueAtTime(Math.max(minFreq, freq), now + transitionTime);
-            filterNode.Q.linearRampToValueAtTime(1 + normalizedValue * 5, now + transitionTime);
-        }
-    }
-    
-    // Update filter knob visual
-    function updateFilterKnobVisual(value) {
-        const knobIndicator = document.querySelector('.filter-container .knob-indicator');
-        if (knobIndicator) {
-            const rotationRange = 270;
-            const degree = ((value / 100) * rotationRange) - (rotationRange / 2);
-            knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
-        }
-    }
-    
-    // Reset filter
-    function resetFilterKnobToCenter() {
-        filterSlider.value = 50;
-        filterSlider.dispatchEvent(new Event('input'));
-    }
-    
-    // =====================================
-    // VISUALIZER
-    // =====================================
-    
-    // Initialize canvas
-    if (waveformCanvas) {
-        canvas = waveformCanvas;
-        canvasCtx = canvas.getContext('2d');
-        try {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-        } catch (e) {
-            console.error("Error setting canvas size:", e);
-        }
-    }
-    
-    // Draw visualizer
     function drawVisualizer() {
+        // Add a zoom factor (e.g., 0.6 means the waveform uses 60% of the vertical space)
         const zoomFactor = 1;
-        
-        // Ensure canvas is available
+
+        // Ensure canvas context is available
         if (!canvasCtx || !canvas) {
-            visualizerAnimationId = null;
-            return;
+             visualizerAnimationId = null;
+             return;
         }
-        
-        // Get theme colors
+
+        // --- Drawing Logic ---
+        // Get computed style for colors ONCE per frame for efficiency
         const computedStyle = getComputedStyle(document.documentElement);
         const strokeColor = computedStyle.getPropertyValue('--accent-color').trim();
-        const idleColor = computedStyle.getPropertyValue('--slider-bg').trim();
-        
-        // Draw active waveform or idle state
-        if (!audioPlayer.paused && isAudioContextInitialized && analyserNode && effectsActive) {
+        const idleColor = computedStyle.getPropertyValue('--slider-bg').trim(); // Color for the flat line
+
+        // Request the next frame IF playing and initialized
+        if (!audioPlayer.paused && isAudioContextInitialized && analyserNode) {
             visualizerAnimationId = requestAnimationFrame(drawVisualizer);
-            
-            // Get data
+
+            // Get current waveform data
             analyserNode.getByteTimeDomainData(dataArray);
-            
-            // Clear canvas
+
+            // Clear the canvas for the new frame
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw waveform
+
+            // Set drawing style for active waveform
             canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = strokeColor || '#8B9D83';
+            canvasCtx.strokeStyle = strokeColor || '#8B9D83'; // Use fallback color
+
+            // Begin drawing the path
             canvasCtx.beginPath();
-            
-            const sliceWidth = canvas.width * 1.0 / bufferLength;
-            let x = 0;
+            const sliceWidth = canvas.width * 1.0 / bufferLength; // Width of each data point segment
+            let x = 0; // Current horizontal position
             const centerY = canvas.height / 2;
-            
+
+            // Loop through data points to draw the line
             for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0;
+                const v = dataArray[i] / 128.0; // Normalize data (0-255 -> 0.0-2.0)
+                // Calculate deviation from center, apply zoom factor, then add back to center
                 const y = centerY + (v * centerY - centerY) * zoomFactor;
-                
+
                 if (i === 0) {
-                    canvasCtx.moveTo(x, y);
+                    canvasCtx.moveTo(x, y); // Start the line
                 } else {
-                    canvasCtx.lineTo(x, y);
+                    canvasCtx.lineTo(x, y); // Draw line segment to next point
                 }
-                x += sliceWidth;
+                x += sliceWidth; // Move to the next horizontal position
             }
-            
+
+            // Finish the line near the middle right edge
             canvasCtx.lineTo(canvas.width, centerY);
-            canvasCtx.stroke();
+            canvasCtx.stroke(); // Render the line on the canvas
+
         } else {
-            // Draw idle state
-            visualizerAnimationId = null;
-            
-            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = idleColor || 'rgba(139, 157, 131, 0.2)';
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(0, canvas.height / 2);
-            canvasCtx.lineTo(canvas.width, canvas.height / 2);
-            canvasCtx.stroke();
+             // --- Draw Idle State (Flat Line) ---
+             visualizerAnimationId = null; // Ensure animation stops
+
+             // Clear the canvas
+             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+             // Set style for idle line
+             canvasCtx.lineWidth = 2; // Can be same or different width
+             canvasCtx.strokeStyle = idleColor || 'rgba(139, 157, 131, 0.2)'; // Use slider background color
+
+             // Draw horizontal line in the middle
+             canvasCtx.beginPath();
+             canvasCtx.moveTo(0, canvas.height / 2);
+             canvasCtx.lineTo(canvas.width, canvas.height / 2);
+             canvasCtx.stroke();
         }
     }
-    
+
     // =====================================
-    // VOLUME CONTROL
+    // Theme Toggle
     // =====================================
-    
-    // Apply volume 
-    function applyVolume() {
-        const value = parseInt(volumeSlider.value);
-        volumeValue.textContent = `${value}%`;
-        
-        // Always set volume directly on audio element
-        audioPlayer.volume = value / 100;
-        
-        // Set Web Audio volume if active
-        if (gainNode && isAudioContextInitialized && effectsActive) {
-            resumeAudioContext();
-            const volume = Math.pow(value / 100, 2); 
-            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-        }
-    }
-    
-    // =====================================
-    // THEME TOGGLE
-    // =====================================
-    
-    // Load saved theme
     const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
-    
-    // Toggle theme
+
     function toggleTheme() {
         const currentTheme = document.documentElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", newTheme);
         localStorage.setItem("theme", newTheme);
+        // No explicit redraw needed for visualizer, CSS handles color change
     }
-    
+    themeToggle.addEventListener("click", toggleTheme);
+
     // =====================================
-    // KNOB DRAG HANDLING
+    // Utility Functions
     // =====================================
-    
-    let isDragging = false;
-    let dragTarget = null;
-    let startX, startY, startValue;
-    
-    function getEventCoords(e) {
-        if (e.touches && e.touches.length > 0) {
-            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }
-        return { x: e.clientX, y: e.clientY };
-    }
-    
-    function handleDragStart(e, target) {
-        if (e.preventDefault) e.preventDefault();
-        
-        isDragging = true;
-        dragTarget = target;
-        const coords = getEventCoords(e);
-        startX = coords.x;
-        startY = coords.y;
-        startValue = parseInt(target === 'filter' ? filterSlider.value : reverbSlider.value);
-        
-        document.addEventListener('mousemove', handleDragMove);
-        document.addEventListener('touchmove', handleDragMove, { passive: false });
-        document.addEventListener('mouseup', handleDragEnd);
-        document.addEventListener('touchend', handleDragEnd);
-        document.addEventListener('mouseleave', handleDragEnd);
-    }
-    
-    function handleDragMove(e) {
-        if (!isDragging) return;
-        if (e.preventDefault) e.preventDefault();
-        
-        const coords = getEventCoords(e);
-        const deltaX = coords.x - startX;
-        const deltaY = coords.y - startY;
-        const change = (deltaX - deltaY) * sensitivity;
-        let newValue = Math.round(startValue + change);
-        
-        // Snap filter knob to center
-        if (dragTarget === 'filter' && Math.abs(newValue - 50) < 3) {
-            newValue = 50;
-        }
-        
-        // Clamp value
-        newValue = Math.max(0, Math.min(100, newValue));
-        
-        // Update slider
-        const slider = dragTarget === 'filter' ? filterSlider : reverbSlider;
-        if (slider && newValue !== parseInt(slider.value)) {
-            slider.value = newValue;
-            slider.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    }
-    
-    function handleDragEnd() {
-        if (!isDragging) return;
-        
-        isDragging = false;
-        dragTarget = null;
-        
-        document.removeEventListener('mousemove', handleDragMove);
-        document.removeEventListener('touchmove', handleDragMove);
-        document.removeEventListener('mouseup', handleDragEnd);
-        document.removeEventListener('touchend', handleDragEnd);
-        document.removeEventListener('mouseleave', handleDragEnd);
-    }
-    
-    // =====================================
-    // UTILITY FUNCTIONS
-    // =====================================
-    
-    // Format time as MM:SS
     function formatTime(seconds) {
         if (isNaN(seconds) || seconds < 0) return "00:00";
         seconds = Math.floor(seconds);
@@ -907,375 +351,605 @@ document.addEventListener("DOMContentLoaded", function() {
         seconds = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
-    
-    // =====================================
-    // INITIALIZATION AND EVENT LISTENERS
-    // =====================================
-    
-    // Initialize player controls
-    function initializeControls() {
-        console.log("Initializing player...");
-        
-        // Set up filter knob
-        filterSlider.value = 50;
-        updateFilterKnobVisual(50);
-        filterToggleBtn.classList.remove('active');
-        filterActive = false;
-        
-        // Set up reverb knob
-        if (reverbSlider) {
-            reverbSlider.value = 0;
-            updateReverbKnobVisual(0);
-            reverbToggleBtn.classList.remove('active');
-            reverbActive = false;
+
+    function getEventCoords(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }
-        
-        // CRITICAL: Apply proxy to all audio links
-        console.log("Applying proxy to all audio links...");
-        document.querySelectorAll(".episode-link").forEach(link => {
-            const originalHref = link.getAttribute("href");
-            console.log("Processing link:", originalHref);
-            const proxiedHref = getProxiedUrl(originalHref);
-            
-            // Store original URL
-            link.setAttribute("data-original-url", originalHref);
-            
-            // Update href with proxied URL
-            link.setAttribute("href", proxiedHref);
-            console.log("Updated to:", proxiedHref);
-        });
-        
-        // Set up background playback
-        setupBackgroundPlayback();
-        
-        // Load saved volume or set default
-        const savedVolume = localStorage.getItem("volume");
-        volumeSlider.value = savedVolume !== null ? savedVolume : 80;
-        volumeValue.textContent = `${volumeSlider.value}%`;
-        
-        // Set direct volume immediately
-        audioPlayer.volume = parseInt(volumeSlider.value) / 100;
-        
-        // Set up featured tags
-        document.querySelectorAll('.file-featured').forEach(item => {
-            const mobileTag = item.querySelector('.file-number-container .feat-tag');
-            if (mobileTag) mobileTag.style.display = 'inline-flex';
-        });
-        
-        // Reset all player items
-        resetAllItemsVisuals();
-        
-        // Draw initial visualizer state
-        if (canvasCtx) {
-            drawVisualizer();
-        }
-        
-        console.log("Player initialized successfully");
+        return { x: e.clientX, y: e.clientY };
     }
-    
+
     // =====================================
-    // EVENT LISTENERS
+    // Player State Management
     // =====================================
-    
-    // Theme toggle click
-    themeToggle.addEventListener("click", toggleTheme);
-    
-    // Volume control
+    function resetAllItemsVisuals() {
+        document.querySelectorAll(".file-item").forEach(item => {
+            item.classList.remove("expanded");
+            const iconElement = item.querySelector(".file-icon svg");
+            const timeIndicator = item.querySelector(".time-indicator");
+            if (iconElement) iconElement.setAttribute("data-icon", "play");
+            if (timeIndicator) {
+                // Don't hide if it's the currently playing item (handle in updateTime)
+                if (item !== currentPlayingItem) {
+                    timeIndicator.style.display = "none";
+                    timeIndicator.textContent = "00:00 / 00:00";
+                }
+            }
+            const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
+            if (expandedPlayBtn) expandedPlayBtn.setAttribute("data-icon", "play");
+            const progressFilled = item.querySelector(".progress-filled");
+            if (progressFilled) progressFilled.style.width = "0%";
+        });
+        // Clear currentPlayingItem only when explicitly stopping/changing tracks
+    }
+
+    function playTrack(item) {
+        if (!isAudioContextInitialized) {
+            initializeAudioContext(); // Initialize on first play attempt
+            if (!isAudioContextInitialized) return; // Stop if initialization failed
+        }
+        resumeAudioContext(); // Resume context before playing
+
+        const link = item.querySelector(".episode-link");
+        const src = link.getAttribute("href");
+
+        if (currentPlayingItem === item) { // Clicked on the currently playing item
+            if (audioPlayer.paused) {
+                audioPlayer.play().catch(error => console.error("Error playing audio:", error));
+            } else {
+                audioPlayer.pause();
+            }
+            updateIcon(item); // Update play/pause icon
+        } else { // Clicked on a new item
+            resetAllItemsVisuals(); // Reset visuals of OTHERS
+            audioPlayer.src = src;
+            audioPlayer.load(); // Important for ensuring metadata loads
+            audioPlayer.play().catch(error => console.error("Error playing audio:", error));
+            currentPlayingItem = item;
+
+            // Update media session metadata for lock screen controls
+            const trackName = item.querySelector('.file-number')?.textContent || '';
+            const episodeDate = item.querySelector('.file-date')?.textContent || '';
+            updateMediaSessionMetadata(trackName, episodeDate);
+
+            item.classList.add("expanded");
+            updateIcon(item); // Set initial icon state
+            const timeIndicator = item.querySelector(".time-indicator");
+            if (timeIndicator) {
+                timeIndicator.style.display = "block"; // Show time for current item
+            }
+        }
+    }
+
+    function updateIcon(item) {
+        if (!item) return;
+        const iconElement = item.querySelector(".file-icon svg");
+        const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
+        const isPaused = audioPlayer.paused;
+        const newIcon = isPaused ? "play" : "pause";
+
+        if (iconElement) iconElement.setAttribute("data-icon", newIcon);
+        if (expandedPlayBtn) expandedPlayBtn.setAttribute("data-icon", newIcon);
+    }
+
+    function updateTime() {
+        if (!currentPlayingItem || !audioPlayer.duration || isNaN(audioPlayer.duration)) return;
+
+        const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
+        const currentTimeEl = currentPlayingItem.querySelector(".current-time");
+        const durationTimeEl = currentPlayingItem.querySelector(".duration-time");
+        const progressFilled = currentPlayingItem.querySelector(".progress-filled");
+
+        const currentTime = formatTime(audioPlayer.currentTime);
+        const duration = formatTime(audioPlayer.duration);
+
+        if (timeIndicator) timeIndicator.textContent = `${currentTime} / ${duration}`;
+        if (currentTimeEl) currentTimeEl.textContent = currentTime;
+        if (durationTimeEl) durationTimeEl.textContent = duration;
+
+        if (progressFilled) {
+            const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            progressFilled.style.width = `${progressPercentage}%`;
+        }
+
+        // Update position state for Media Session API
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            navigator.mediaSession.setPositionState({
+                duration: audioPlayer.duration || 0,
+                playbackRate: audioPlayer.playbackRate,
+                position: audioPlayer.currentTime || 0
+            });
+        }
+    }
+
+    // =====================================
+    // Control Handlers: Volume, Filter, Reverb
+    // =====================================
+
+    // --- Volume ---
+    function applyVolume() {
+        const value = parseInt(volumeSlider.value);
+        volumeValue.textContent = `${value}%`;
+        if (gainNode) {
+            const volume = Math.pow(value / 100, 2); // Apply non-linear curve
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        }
+    }
     volumeSlider.addEventListener("input", function() {
+        resumeAudioContext(); // Ensure context is active on interaction
         applyVolume();
         localStorage.setItem("volume", volumeSlider.value);
     });
-    
-    // Filter controls
+    // Load saved volume or set default
+    const savedVolume = localStorage.getItem("volume");
+    volumeSlider.value = savedVolume !== null ? savedVolume : 80;
+    volumeValue.textContent = `${volumeSlider.value}%`;
+    // applyVolume(); // Apply loaded/default volume via initializeAudioContext if possible
+
+    // --- Filter ---
+    function toggleFilter() {
+        filterActive = !filterActive;
+        filterToggleBtn.classList.toggle('active', filterActive);
+        applyAudioFilter(); // Apply changes (either activate or bypass)
+    }
+
+    function updateFilterKnobVisual(value) {
+        const knobIndicator = document.querySelector('.filter-container .knob-indicator');
+        if (knobIndicator) {
+            const rotationRange = 270; // -135 to +135 degrees
+            const degree = ((value / 100) * rotationRange) - (rotationRange / 2);
+            knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
+        }
+    }
+
+    function applyAudioFilter() {
+        if (!filterNode || !isAudioContextInitialized) return;
+
+        if (!filterActive) { // Bypass if inactive
+            filterNode.type = 'allpass';
+            filterNode.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
+            filterNode.Q.setValueAtTime(1, audioContext.currentTime);
+            return;
+        }
+
+        // Apply active filter settings
+        const value = parseInt(filterSlider.value);
+        const maxFreq = audioContext.sampleRate / 2;
+        const minFreq = 20;
+        const now = audioContext.currentTime;
+        const transitionTime = 0.02; // Short transition
+
+        if (value === 50) { // Center position - nearly bypass (high LP freq)
+            filterNode.type = 'lowpass';
+            filterNode.frequency.linearRampToValueAtTime(maxFreq * 0.99, now + transitionTime); // Avoid clicks at exact edge
+            filterNode.Q.linearRampToValueAtTime(1, now + transitionTime);
+        } else if (value < 50) { // Low-pass
+            filterNode.type = 'lowpass';
+            const normalizedValue = (49 - value) / 49; // 0 to 1 for low-pass range
+            // Exponential frequency scaling for more musical control
+            const freq = minFreq * Math.pow(maxFreq / minFreq, 1 - normalizedValue);
+            filterNode.frequency.linearRampToValueAtTime(Math.max(minFreq, freq), now + transitionTime);
+            filterNode.Q.linearRampToValueAtTime(1 + normalizedValue * 5, now + transitionTime); // Increase Q towards min freq
+        } else { // High-pass (value > 50)
+            filterNode.type = 'highpass';
+            const normalizedValue = (value - 51) / 49; // 0 to 1 for high-pass range
+            // Exponential frequency scaling
+            const freq = minFreq * Math.pow(maxFreq / minFreq, normalizedValue);
+            filterNode.frequency.linearRampToValueAtTime(Math.max(minFreq, freq), now + transitionTime);
+            filterNode.Q.linearRampToValueAtTime(1 + normalizedValue * 5, now + transitionTime); // Increase Q towards max freq
+        }
+    }
+
+    function resetFilterKnobToCenter() {
+        filterSlider.value = 50;
+        filterSlider.dispatchEvent(new Event('input')); // Trigger updates
+    }
+
     filterSlider.addEventListener("input", function() {
         const currentValue = parseInt(filterSlider.value);
         updateFilterKnobVisual(currentValue);
-        if (effectsActive) {
-            resumeAudioContext();
-            applyAudioFilter();
-        }
+        resumeAudioContext();
+        applyAudioFilter();
     });
-    
     filterToggleBtn.addEventListener('click', function() {
+        resumeAudioContext();
         toggleFilter();
     });
-    
-    // Reverb controls
-    if (reverbSlider) {
+
+    // --- Reverb ---
+    function toggleReverb() {
+        reverbActive = !reverbActive;
+        reverbToggleBtn.classList.toggle('active', reverbActive);
+        applyReverb(); // Apply changes (activate or set send to 0)
+    }
+
+    function updateReverbKnobVisual(value) {
+        const knobIndicator = document.querySelector('.reverb-container .knob-indicator');
+        if (knobIndicator) {
+            const rotationRange = 270; // -135 to +135 degrees
+            const degree = -135 + (value / 100) * rotationRange; // Map 0-100 to -135 to +135
+            knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
+        }
+    }
+
+    function applyReverb() {
+        if (!reverbSendNode || !isAudioContextInitialized) return;
+
+        const value = parseInt(reverbSlider.value);
+        let sendAmount = 0;
+
+        if (reverbActive) {
+            // Calculate send amount - exponential curve for more effect at higher values
+            sendAmount = Math.pow(value / 100, 1.1) * 1.5; // Max send boosted to 150%
+        } // else sendAmount remains 0
+
+        const now = audioContext.currentTime;
+        const transitionTime = 0.05; // 50ms transition
+        reverbSendNode.gain.linearRampToValueAtTime(sendAmount, now + transitionTime);
+        // console.log(`Reverb Send: ${sendAmount.toFixed(3)} (Active: ${reverbActive})`);
+    }
+
+    function resetReverbKnobToDefault() {
+        reverbSlider.value = 0;
+        reverbSlider.dispatchEvent(new Event('input')); // Trigger updates
+    }
+
+    if (reverbSlider) { // Check if reverb elements exist
         reverbSlider.addEventListener("input", function() {
             const currentValue = parseInt(reverbSlider.value);
             updateReverbKnobVisual(currentValue);
-            if (effectsActive) {
-                resumeAudioContext();
-                applyReverb();
-            }
+            resumeAudioContext();
+            applyReverb();
         });
-        
         reverbToggleBtn.addEventListener('click', function() {
+            resumeAudioContext();
             toggleReverb();
         });
     }
-    
-    // Knob drag controls
+
+    function adjustReverbLowcut(direction) {
+        if (!reverbLowcutNode || !isAudioContextInitialized) return;
+        resumeAudioContext();
+
+        let step = currentLowcutFreq * 0.1; // Exponential step (10%)
+        if (direction === 'up') {
+            currentLowcutFreq = Math.min(REVERB_LOWCUT_MAX, currentLowcutFreq + step);
+        } else {
+            currentLowcutFreq = Math.max(REVERB_LOWCUT_MIN, currentLowcutFreq - step);
+        }
+
+        const now = audioContext.currentTime;
+        reverbLowcutNode.frequency.linearRampToValueAtTime(currentLowcutFreq, now + 0.05);
+        console.log(`Reverb Lowcut: ${Math.round(currentLowcutFreq)} Hz`);
+    }
+
+    // =====================================
+    // Knob Drag Logic (Filter & Reverb)
+    // =====================================
+    let isDragging = false;
+    let dragTarget = null; // 'filter' or 'reverb'
+    let startX, startY, startValue;
+
+    function handleDragStart(e, target) {
+        // Prevent text selection during drag
+         if (e.preventDefault) e.preventDefault();
+
+        isDragging = true;
+        dragTarget = target;
+        const coords = getEventCoords(e);
+        startX = coords.x;
+        startY = coords.y;
+        startValue = parseInt(target === 'filter' ? filterSlider.value : reverbSlider.value);
+
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('touchmove', handleDragMove, { passive: false }); // Allow preventDefault
+        document.addEventListener('mouseup', handleDragEnd);
+        document.addEventListener('touchend', handleDragEnd);
+        document.addEventListener('mouseleave', handleDragEnd); // Stop if mouse leaves window
+    }
+
+    function handleDragMove(e) {
+        if (!isDragging) return;
+        // Prevent page scroll on touch devices during drag
+        if (e.preventDefault) e.preventDefault();
+
+        const coords = getEventCoords(e);
+        const deltaX = coords.x - startX;
+        const deltaY = coords.y - startY; // Y increases downwards
+        const change = (deltaX - deltaY) * sensitivity; // Vertical movement inverted
+        let newValue = Math.round(startValue + change);
+
+        // Apply snapping for filter knob
+        if (dragTarget === 'filter' && Math.abs(newValue - 50) < 3) {
+            newValue = 50;
+        }
+
+        // Clamp value between 0 and 100
+        newValue = Math.max(0, Math.min(100, newValue));
+
+        // Update the correct slider and trigger its input event
+        const slider = dragTarget === 'filter' ? filterSlider : reverbSlider;
+        if (slider && newValue !== parseInt(slider.value)) {
+            slider.value = newValue;
+            slider.dispatchEvent(new Event('input', { bubbles: true })); // Ensure event bubbles
+        }
+    }
+
+    function handleDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        dragTarget = null;
+
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('touchmove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+        document.removeEventListener('touchend', handleDragEnd);
+        document.removeEventListener('mouseleave', handleDragEnd);
+    }
+
+    // Add drag listeners to knob wrappers
     if (filterKnobWrapper) {
         filterKnobWrapper.addEventListener('mousedown', (e) => handleDragStart(e, 'filter'));
-        filterKnobWrapper.addEventListener('touchstart', (e) => handleDragStart(e, 'filter'), { passive: false });
+        filterKnobWrapper.addEventListener('touchstart', (e) => handleDragStart(e, 'filter'), { passive: false }); // Allow preventDefault
         filterKnobWrapper.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            resetFilterKnobToCenter();
+            e.preventDefault(); e.stopPropagation(); resetFilterKnobToCenter();
         });
     }
-    
     if (reverbKnobWrapper) {
         reverbKnobWrapper.addEventListener('mousedown', (e) => handleDragStart(e, 'reverb'));
         reverbKnobWrapper.addEventListener('touchstart', (e) => handleDragStart(e, 'reverb'), { passive: false });
         reverbKnobWrapper.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            resetReverbKnobToDefault();
+            e.preventDefault(); e.stopPropagation(); resetReverbKnobToDefault();
         });
     }
-    
-    // Audio player events
-    audioPlayer.addEventListener("timeupdate", updateTime);
-    
-    audioPlayer.addEventListener("loadedmetadata", () => {
-        updateTime();
-    });
-    
-    audioPlayer.addEventListener("play", function() {
-        if (document.visibilityState === 'visible' && !isAudioContextInitialized) {
-            // Initialize effects on first play if visible
-            setTimeout(() => {
-                try {
-                    initializeAudioContext();
-                } catch (err) {
-                    console.error("Failed to initialize audio effects on play:", err);
-                }
-            }, 300);
-        } else if (isAudioContextInitialized && !effectsActive && document.visibilityState === 'visible') {
-            // Re-enable effects if they were disabled
-            enableEffects();
+
+
+    // =====================================
+    // Initialize Controls and UI
+    // =====================================
+    function initializeControls() {
+        // Initialize Filter
+        filterSlider.value = 50;
+        updateFilterKnobVisual(filterSlider.value);
+        filterToggleBtn.classList.remove('active'); // Start inactive
+        filterActive = false;
+
+        // Initialize Reverb (if elements exist)
+        if (reverbSlider) {
+            reverbSlider.value = 0;
+            updateReverbKnobVisual(reverbSlider.value);
+            reverbToggleBtn.classList.remove('active'); // Start inactive
+            reverbActive = false;
         }
-        
-        if (currentPlayingItem) {
-            updateIcon(currentPlayingItem);
+
+        // Enable background playback for mobile
+        enableBackgroundPlayback();
+        setupMediaSession();
+
+        // Apply initial volume (will be done in initializeAudioContext if called later)
+        // applyVolume();
+
+        // Set up 'feat' tags visibility
+        document.querySelectorAll('.file-featured').forEach(item => {
+            const mobileTag = item.querySelector('.file-number-container .feat-tag');
+            if (mobileTag) mobileTag.style.display = 'inline-flex';
+        });
+
+        // Reset all item visuals initially
+        resetAllItemsVisuals();
+
+        // Draw the initial idle state for the visualizer IF canvas is ready
+        if (canvasCtx) {
+            requestAnimationFrame(drawVisualizer); // Use rAF ensures it draws after initial layout
         }
-        
-        // Start visualizer if effects are active
-        if (isAudioContextInitialized && effectsActive && canvasCtx && !visualizerAnimationId) {
-            drawVisualizer();
-        }
-    });
-    
-    audioPlayer.addEventListener("pause", function() {
-        if (currentPlayingItem) {
-            updateIcon(currentPlayingItem);
-        }
-    });
-    
-    audioPlayer.addEventListener("ended", function() {
-        // Stop visualizer
-        if (visualizerAnimationId) {
-            cancelAnimationFrame(visualizerAnimationId);
-            visualizerAnimationId = null;
-        }
-        
-        // Clear canvas
-        if (canvasCtx && canvas) {
-            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            drawVisualizer(); // Draw idle state
-        }
-        
-        // Reset track UI
-        if (currentPlayingItem) {
-            currentPlayingItem.classList.remove("expanded");
-            updateIcon(currentPlayingItem);
-            const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
-            if (timeIndicator) timeIndicator.style.display = "none";
-            const progressFilled = currentPlayingItem.querySelector(".progress-filled");
-            if (progressFilled) progressFilled.style.width = "0%";
-        }
-        
-        currentPlayingItem = null;
-    });
-    
-    // Error handling for audio
-    audioPlayer.addEventListener("error", function(e) {
-        console.error("Audio error:", audioPlayer.error);
-        if (audioPlayer.error && audioPlayer.error.code) {
-            switch(audioPlayer.error.code) {
-                case 1: // MEDIA_ERR_ABORTED
-                    console.error("Audio playback aborted");
-                    break;
-                case 2: // MEDIA_ERR_NETWORK
-                    console.error("Network error during audio loading");
-                    alert("Network error loading audio. Please check your connection.");
-                    break;
-                case 3: // MEDIA_ERR_DECODE
-                    console.error("Audio decoding error");
-                    break;
-                case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-                    console.error("Audio format not supported");
-                    alert("This audio format is not supported by your browser.");
-                    break;
-                default:
-                    console.error("Unknown audio error");
-            }
-        }
-    });
-    
-    // Window resize
-    window.addEventListener('resize', () => {
-        if (canvas) {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-        }
-    });
-    
-    // Set up file item click handlers
+    }
+    initializeControls();
+
+    // =====================================
+    // Event Listeners for File Items & Player
+    // =====================================
+
+    // --- File List Items ---
     document.querySelectorAll(".file-item").forEach(item => {
         const episodeLink = item.querySelector(".episode-link");
         const progressBar = item.querySelector(".progress-bar");
         const rewindBtn = item.querySelector(".rewind-btn");
         const forwardBtn = item.querySelector(".forward-btn");
         const playPauseBtn = item.querySelector(".play-pause-btn");
-        
-        // Prevent default link behavior and play track
+
+        // Main click on item link
         if (episodeLink) {
             episodeLink.addEventListener("click", function(e) {
                 e.preventDefault();
-                e.stopPropagation();
                 playTrack(item);
-                return false;
             });
         }
-        
+
         // Progress bar seeking
         if (progressBar) {
             progressBar.addEventListener("click", function(e) {
                 if (currentPlayingItem !== item || !audioPlayer.duration || isNaN(audioPlayer.duration)) return;
+                resumeAudioContext();
                 const rect = progressBar.getBoundingClientRect();
                 const clickPosition = (e.clientX - rect.left) / rect.width;
                 audioPlayer.currentTime = Math.max(0, Math.min(audioPlayer.duration, clickPosition * audioPlayer.duration));
-                updateTime();
+                updateTime(); // Update visuals immediately
             });
         }
-        
-        // Control buttons
+
+        // Player control buttons
         if (rewindBtn) {
             rewindBtn.addEventListener("click", function(e) {
-                e.stopPropagation();
+                e.stopPropagation(); // Prevent item click
                 if (currentPlayingItem !== item) return;
+                resumeAudioContext();
                 audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
                 updateTime();
             });
         }
-        
         if (forwardBtn) {
             forwardBtn.addEventListener("click", function(e) {
                 e.stopPropagation();
                 if (currentPlayingItem !== item || !audioPlayer.duration) return;
+                resumeAudioContext();
                 audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
                 updateTime();
             });
         }
-        
         if (playPauseBtn) {
             playPauseBtn.addEventListener("click", function(e) {
                 e.stopPropagation();
+                // If this item isn't playing, start it. Otherwise, toggle play/pause.
                 playTrack(item);
             });
         }
     });
-    
-    // Keyboard shortcuts
+
+    // --- Audio Player Events ---
+    audioPlayer.addEventListener("timeupdate", updateTime);
+
+    audioPlayer.addEventListener("loadedmetadata", () => {
+        // Update time display as soon as duration is known
+        updateTime();
+    });
+
+    audioPlayer.addEventListener("play", function() {
+        resumeAudioContext(); // Ensure context is running
+        if (currentPlayingItem) updateIcon(currentPlayingItem); // Update icon to 'pause'
+        // Start visualizer ONLY if context is initialized and canvas exists
+        if (isAudioContextInitialized && canvasCtx && !visualizerAnimationId) {
+             // Ensure canvas size is correct before starting
+            if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+                 canvas.width = canvas.offsetWidth;
+                 canvas.height = canvas.offsetHeight;
+             }
+            console.log("Starting visualizer...");
+            drawVisualizer(); // Start the loop
+        }
+    });
+
+    audioPlayer.addEventListener("pause", function() {
+        if (currentPlayingItem) updateIcon(currentPlayingItem); // Update icon to 'play'
+        // Stop the visualizer loop by letting the drawVisualizer function return early
+        // The check `if (audioPlayer.paused)` inside drawVisualizer handles this.
+        // We set visualizerAnimationId to null inside drawVisualizer when it stops.
+        console.log("Pausing visualizer (will stop on next frame).");
+    });
+
+    audioPlayer.addEventListener("ended", function() {
+        // Stop visualizer explicitly and clear canvas
+         if (visualizerAnimationId && cancelAnimationFrame) {
+             cancelAnimationFrame(visualizerAnimationId);
+         }
+         visualizerAnimationId = null;
+         if(canvasCtx && canvas) canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+         console.log("Stopping visualizer (ended).");
+
+         // Reset the specific item that just finished
+         if (currentPlayingItem) {
+            currentPlayingItem.classList.remove("expanded");
+            updateIcon(currentPlayingItem); // Set icon back to play
+            const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
+            if (timeIndicator) timeIndicator.style.display = "none";
+            const progressFilled = currentPlayingItem.querySelector(".progress-filled");
+            if (progressFilled) progressFilled.style.width = "0%";
+         }
+        currentPlayingItem = null; // Clear the currently playing item state
+    });
+
+    // --- Window Resize ---
+    window.addEventListener('resize', () => {
+        // Update canvas drawing buffer size if canvas exists
+        if (canvas) {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            // No need to restart drawing if already playing, it adapts
+        }
+    });
+
+    // =====================================
+    // Keyboard Shortcuts
+    // =====================================
     document.addEventListener('keydown', function(e) {
-        // Skip if typing in an input
+        // Ignore shortcuts if typing in an input field
         if (e.target.tagName === 'INPUT') return;
-        
-        // Space - Toggle play/pause
+
+        // Space bar: Toggle Play/Pause for current track
         if (e.code === 'Space' && currentPlayingItem) {
             e.preventDefault();
-            playTrack(currentPlayingItem);
+            playTrack(currentPlayingItem); // Toggle play/pause
         }
-        
-        // T - Toggle theme
+
+        // T: Toggle Theme
         if (e.code === 'KeyT') {
             toggleTheme();
         }
-        
-        // R - Reset filter knob
+
+        // R: Reset Filter Knob
         if (e.code === 'KeyR') {
             resetFilterKnobToCenter();
         }
-        
-        // B - Reset reverb knob
+
+        // B: Reset Reverb Knob
         if (e.code === 'KeyB' && reverbSlider) {
             resetReverbKnobToDefault();
         }
-        
-        // F - Toggle filter
+
+        // F: Toggle Filter On/Off
         if (e.code === 'KeyF') {
             toggleFilter();
         }
-        
-        // V - Toggle reverb
+
+        // V: Toggle Reverb On/Off
         if (e.code === 'KeyV' && reverbToggleBtn) {
             toggleReverb();
         }
-        
-        // Arrow Up/Down - Volume
+
+        // Arrow Up/Down: Master Volume
         if (e.code === 'ArrowUp') {
-            e.preventDefault();
-            const currentVolume = parseInt(volumeSlider.value);
-            if (currentVolume < 100) {
-                volumeSlider.value = Math.min(100, currentVolume + 5);
-                volumeSlider.dispatchEvent(new Event('input'));
-            }
+             e.preventDefault();
+             let currentVolume = parseInt(volumeSlider.value);
+             if (currentVolume < 100) {
+                 volumeSlider.value = Math.min(100, currentVolume + 5);
+                 volumeSlider.dispatchEvent(new Event('input'));
+             }
         }
-        
         if (e.code === 'ArrowDown') {
-            e.preventDefault();
-            const currentVolume = parseInt(volumeSlider.value);
-            if (currentVolume > 0) {
+             e.preventDefault();
+             let currentVolume = parseInt(volumeSlider.value);
+             if (currentVolume > 0) {
                 volumeSlider.value = Math.max(0, currentVolume - 5);
                 volumeSlider.dispatchEvent(new Event('input'));
-            }
+             }
         }
-        
-        // Arrow Left/Right - Filter
+
+        // Arrow Left/Right: Filter Knob
         if (e.code === 'ArrowLeft') {
             e.preventDefault();
-            const currentFilter = parseInt(filterSlider.value);
+            let currentFilter = parseInt(filterSlider.value);
             if (currentFilter > 0) {
                 filterSlider.value = Math.max(0, currentFilter - 2);
                 filterSlider.dispatchEvent(new Event('input'));
             }
         }
-        
         if (e.code === 'ArrowRight') {
             e.preventDefault();
-            const currentFilter = parseInt(filterSlider.value);
+            let currentFilter = parseInt(filterSlider.value);
             if (currentFilter < 100) {
                 filterSlider.value = Math.min(100, currentFilter + 2);
                 filterSlider.dispatchEvent(new Event('input'));
             }
         }
-        
-        // Brackets - Adjust reverb lowcut
+
+        // Brackets Left/Right: Adjust Reverb Lowcut Frequency
         if (e.code === 'BracketLeft') {
             e.preventDefault();
             adjustReverbLowcut('down');
         }
-        
         if (e.code === 'BracketRight') {
             e.preventDefault();
             adjustReverbLowcut('up');
         }
     });
-    
-    // Initialize the player
-    initializeControls();
-});
+
+}); // End DOMContentLoaded
