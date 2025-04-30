@@ -19,8 +19,8 @@ document.addEventListener("DOMContentLoaded", function() {
     let isAudioContextInitialized = false;
     let visualizerAnimationId = null;
     let currentLowcutFreq = 200;
-    let effectsActive = true; // Flag to track if we're using effects
-
+    let effectsActive = true;
+    
     // --- Web Audio API Variables ---
     let audioContext;
     let gainNode;
@@ -40,6 +40,31 @@ document.addEventListener("DOMContentLoaded", function() {
     const REVERB_LOWCUT_MIN = 80;
     const REVERB_LOWCUT_MAX = 800;
     const sensitivity = 0.15;
+
+    // =====================================
+    // Enable console timestamps for better debugging
+    // =====================================
+    const originalConsoleLog = console.log;
+    console.log = function() {
+        const time = new Date().toTimeString().split(' ')[0];
+        originalConsoleLog.apply(console, [`[${time}]`, ...arguments]);
+    };
+
+    // =====================================
+    // PROXY URL HANDLING 
+    // =====================================
+    
+    // Function to proxy audio URLs to avoid CORS issues
+    function getProxiedUrl(originalUrl) {
+        // Skip if already proxied
+        if (originalUrl.includes('allorigins') || originalUrl.includes('cors-anywhere')) {
+            return originalUrl;
+        }
+        
+        // Try different proxies based on availability
+        // This one has high reliability for audio files
+        return `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+    }
     
     // =====================================
     // CORE PLAYER FUNCTIONS
@@ -50,14 +75,13 @@ document.addEventListener("DOMContentLoaded", function() {
         const link = item.querySelector(".episode-link");
         if (!link) return;
         
-        const src = link.getAttribute("href");
+        // Get original and proxied URLs
+        const originalSrc = link.getAttribute("data-original-url") || link.getAttribute("href");
+        const proxiedSrc = getProxiedUrl(originalSrc);
         
-        // Prevent default action to avoid opening in new window
-        link.onclick = function(e) {
-            e.preventDefault();
-            return false;
-        };
-
+        console.log("Playing track:", originalSrc);
+        console.log("Using proxied URL:", proxiedSrc);
+        
         // Toggle play/pause if clicking on current item
         if (currentPlayingItem === item) {
             if (audioPlayer.paused) {
@@ -75,28 +99,31 @@ document.addEventListener("DOMContentLoaded", function() {
         // Set new current item
         currentPlayingItem = item;
         
-        // Apply appropriate volume directly to the audio element
+        // Apply volume
         const volumePercent = parseInt(volumeSlider.value);
         audioPlayer.volume = volumePercent / 100;
         
-        // Set up audio source and play
-        audioPlayer.src = src;
+        // Set source and play
+        audioPlayer.src = proxiedSrc;
         audioPlayer.load();
         
         const playPromise = audioPlayer.play();
         if (playPromise !== undefined) {
             playPromise.catch(e => {
-                console.error("Error starting playback:", e);
-                // Some browsers require user interaction first
+                console.error("Error playing audio:", e);
+                
+                // Special fallback for user interaction requirement
+                if (e.name === 'NotAllowedError') {
+                    alert("Please click again to start playback. This is required by your browser for audio to work.");
+                }
             });
         }
         
-        // Update Media Session metadata
+        // Update metadata and UI
         const trackName = item.querySelector('.file-number')?.textContent || '';
         const episodeDate = item.querySelector('.file-date')?.textContent || '';
         updateMediaSessionMetadata(trackName, episodeDate);
         
-        // Update UI
         item.classList.add("expanded");
         updateIcon(item);
         const timeIndicator = item.querySelector(".time-indicator");
@@ -104,18 +131,16 @@ document.addEventListener("DOMContentLoaded", function() {
             timeIndicator.style.display = "block";
         }
         
-        // Initialize audio context for effects if we're visible
-        // But do this AFTER starting playback to ensure background play works
+        // Initialize audio context for effects after a delay
         if (document.visibilityState === 'visible' && !isAudioContextInitialized) {
-            try {
-                // Slight delay to ensure playback has started
-                setTimeout(() => {
+            setTimeout(() => {
+                try {
                     initializeAudioContext();
-                }, 100);
-            } catch (err) {
-                console.error("Failed to initialize audio effects, continuing with basic playback:", err);
-                // Basic playback will still work without effects
-            }
+                } catch (err) {
+                    console.error("Failed to initialize audio effects:", err);
+                    // Basic playback will still work
+                }
+            }, 500);
         }
     }
     
@@ -202,54 +227,60 @@ document.addEventListener("DOMContentLoaded", function() {
         // Handle page visibility changes
         document.addEventListener('visibilitychange', handleVisibilityChange);
         
-        // Touch event to initialize audio on mobile
+        // Mobile browsers require user interaction
         document.addEventListener('touchstart', function handleFirstTouch() {
             document.removeEventListener('touchstart', handleFirstTouch);
-            // Mobile browsers often require user interaction before audio can play
             if (audioPlayer) {
-                // Just ensure the audio element is ready (don't actually play anything)
                 audioPlayer.load();
             }
         }, { once: true });
     }
     
-    // Handle visibility changes to support background playback
+    // Handle visibility changes 
     function handleVisibilityChange() {
         if (document.visibilityState === 'hidden') {
             // Page going to background
             if (!audioPlayer.paused) {
-                // If we're playing audio, switch to direct mode
+                console.log("Page hidden, preserving background playback");
                 disableEffects();
             }
         } else if (document.visibilityState === 'visible') {
             // Page becoming visible again
-            if (!audioPlayer.paused && !isAudioContextInitialized) {
-                // If we're playing audio without effects, try to re-enable them
-                setTimeout(() => {
+            if (!audioPlayer.paused) {
+                console.log("Page visible again, re-enabling effects if needed");
+                
+                if (!isAudioContextInitialized) {
+                    setTimeout(() => {
+                        try {
+                            initializeAudioContext();
+                        } catch (e) {
+                            console.error("Failed to initialize audio context:", e);
+                        }
+                    }, 300);
+                } else if (!effectsActive) {
                     enableEffects();
-                }, 300);
+                }
             }
         }
     }
     
     // Disable audio effects for background playback
     function disableEffects() {
-        // If we have active effects, disconnect them
         if (effectsActive && isAudioContextInitialized && audioContext) {
             try {
-                // Remember the volume setting
+                // Save volume setting
                 const volumePercent = parseInt(volumeSlider.value);
                 
-                // Disconnect the audio processing chain
+                // Disconnect audio processing
                 if (audioSourceNode) {
                     try {
                         audioSourceNode.disconnect();
                     } catch (e) {
-                        // Ignore disconnect errors
+                        console.log("Disconnect error:", e);
                     }
                 }
                 
-                // Set direct volume on HTML audio element
+                // Set direct volume
                 audioPlayer.volume = volumePercent / 100;
                 
                 // Stop visualizer
@@ -266,19 +297,20 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
     
-    // Re-enable audio effects when returning to foreground
+    // Re-enable audio effects
     function enableEffects() {
-        if (!effectsActive && !audioPlayer.paused) {
+        if (!effectsActive && !audioPlayer.paused && isAudioContextInitialized) {
             try {
-                // Initialize audio context if needed
-                if (!isAudioContextInitialized) {
-                    initializeAudioContext();
-                } else if (audioContext && audioContext.state === 'suspended') {
+                // Resume audio context if needed
+                if (audioContext.state === 'suspended') {
                     audioContext.resume();
                 }
                 
-                if (isAudioContextInitialized) {
-                    // Apply volume and effects
+                // Reconnect audio graph
+                try {
+                    reconnectAudioGraph();
+                    
+                    // Apply effects
                     applyVolume();
                     if (filterActive) applyAudioFilter();
                     if (reverbActive) applyReverb();
@@ -290,14 +322,45 @@ document.addEventListener("DOMContentLoaded", function() {
                     
                     effectsActive = true;
                     console.log("Effects re-enabled");
+                } catch (e) {
+                    console.error("Error reconnecting audio:", e);
                 }
             } catch (e) {
-                console.error("Error re-enabling effects:", e);
+                console.error("Error enabling effects:", e);
             }
         }
     }
     
-    // Setup Media Session API for lock screen controls
+    // Reconnect audio graph
+    function reconnectAudioGraph() {
+        if (!audioContext) return;
+        
+        try {
+            // Create new source node
+            const source = audioContext.createMediaElementSource(audioPlayer);
+            audioSourceNode = source;
+            
+            // Connect main path
+            source.connect(gainNode);
+            gainNode.connect(analyserNode);
+            analyserNode.connect(filterNode);
+            filterNode.connect(audioContext.destination);
+            
+            // Connect reverb path
+            source.connect(reverbSendNode);
+            reverbSendNode.connect(reverbLowcutNode);
+            reverbLowcutNode.connect(convolver);
+            convolver.connect(reverbReturnNode);
+            reverbReturnNode.connect(gainNode);
+            
+            console.log("Audio graph reconnected");
+        } catch (e) {
+            console.error("Graph connection error:", e);
+            throw e;
+        }
+    }
+    
+    // Setup Media Session API
     function setupMediaSession() {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('play', () => {
@@ -344,16 +407,16 @@ document.addEventListener("DOMContentLoaded", function() {
     // AUDIO EFFECTS SETUP
     // =====================================
     
-    // Initialize Web Audio API for effects
+    // Initialize Web Audio API
     function initializeAudioContext() {
-        // If already initialized and active, don't reinitialize
-        if (isAudioContextInitialized && effectsActive) return;
+        if (isAudioContextInitialized) return;
         
         try {
             // Create audio context
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log("Created Audio Context:", audioContext.state);
             
-            // Create audio nodes
+            // Create nodes
             gainNode = audioContext.createGain();
             filterNode = audioContext.createBiquadFilter();
             analyserNode = audioContext.createAnalyser();
@@ -363,35 +426,41 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbReturnNode = audioContext.createGain();
             
             try {
-                // Create source from audio element
-                audioSourceNode = audioContext.createMediaElementSource(audioPlayer);
+                // Get audio source
+                const source = audioContext.createMediaElementSource(audioPlayer);
+                audioSourceNode = source;
+                
+                // Connect main path
+                source.connect(gainNode);
+                
+                // Connect reverb send path
+                source.connect(reverbSendNode);
+                
+                console.log("Audio source connected successfully");
             } catch (sourceError) {
-                // If the audio element is already connected to an audio context
                 console.error("Error creating audio source:", sourceError);
-                return;
+                // Try to recover
+                if (sourceError.message && sourceError.message.includes("already been connected")) {
+                    console.log("Audio element already connected - trying alternate approach");
+                }
+                throw sourceError;
             }
             
-            // Connect audio processing graph
-            
-            // Main path
-            audioSourceNode.connect(gainNode);
+            // Connect the rest of the graph
             gainNode.connect(analyserNode);
             analyserNode.connect(filterNode);
             filterNode.connect(audioContext.destination);
             
-            // Parallel reverb path
-            audioSourceNode.connect(reverbSendNode);
             reverbSendNode.connect(reverbLowcutNode);
             reverbLowcutNode.connect(convolver);
             convolver.connect(reverbReturnNode);
             reverbReturnNode.connect(gainNode);
             
-            // Configure analyser
+            // Configure nodes
             analyserNode.fftSize = 2048;
             bufferLength = analyserNode.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
             
-            // Configure reverb
             reverbLowcutNode.type = 'highpass';
             reverbLowcutNode.frequency.value = currentLowcutFreq;
             reverbLowcutNode.Q.value = 0.7;
@@ -399,34 +468,36 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbReturnNode.gain.value = 1.4;
             createReverbImpulse();
             
-            // Configure filter
             filterNode.type = 'allpass';
             filterNode.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
             filterNode.Q.setValueAtTime(1, audioContext.currentTime);
             
-            // Apply initial volume
+            // Apply volume
             applyVolume();
             
             isAudioContextInitialized = true;
             effectsActive = true;
-            console.log("Audio effects initialized successfully");
+            console.log("Audio Context successfully initialized");
             
             // Start visualizer if playing
-            if (!audioPlayer.paused && canvasCtx && !visualizerAnimationId) {
+            if (!audioPlayer.paused && canvasCtx) {
                 drawVisualizer();
             }
         } catch (e) {
             console.error("Failed to initialize Web Audio API:", e);
-            // Fall back to basic audio playback
             isAudioContextInitialized = false;
             effectsActive = false;
         }
     }
     
-    // Function to resume AudioContext if suspended
+    // Resume AudioContext
     function resumeAudioContext() {
         if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().catch(e => console.error("Error resuming audio context:", e));
+            audioContext.resume().then(() => {
+                console.log("Audio context resumed:", audioContext.state);
+            }).catch(e => {
+                console.error("Error resuming audio context:", e);
+            });
         }
     }
     
@@ -434,7 +505,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // AUDIO EFFECTS: REVERB
     // =====================================
     
-    // Generate reverb impulse response
+    // Generate reverb impulse
     function createReverbImpulse() {
         if (!audioContext || !convolver) return;
         
@@ -474,13 +545,23 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         
         convolver.buffer = impulse;
+        console.log("Reverb impulse created");
     }
     
-    // Toggle reverb effect
+    // Toggle reverb
     function toggleReverb() {
-        if (!isAudioContextInitialized || !effectsActive) {
-            initializeAudioContext();
-            if (!isAudioContextInitialized) return;
+        if (!isAudioContextInitialized) {
+            try {
+                initializeAudioContext();
+            } catch (e) {
+                console.error("Cannot initialize audio for reverb:", e);
+                return;
+            }
+        }
+        
+        if (!effectsActive) {
+            console.log("Effects not active, can't toggle reverb");
+            return;
         }
         
         reverbActive = !reverbActive;
@@ -490,7 +571,7 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Apply reverb settings
     function applyReverb() {
-        if (!reverbSendNode || !isAudioContextInitialized) return;
+        if (!reverbSendNode || !isAudioContextInitialized || !effectsActive) return;
         
         resumeAudioContext();
         
@@ -498,7 +579,7 @@ document.addEventListener("DOMContentLoaded", function() {
         let sendAmount = 0;
         
         if (reverbActive) {
-            sendAmount = Math.pow(value / 100, 1.1) * 1.5; // Exponential curve
+            sendAmount = Math.pow(value / 100, 1.1) * 1.5;
         }
         
         reverbSendNode.gain.linearRampToValueAtTime(
@@ -507,13 +588,13 @@ document.addEventListener("DOMContentLoaded", function() {
         );
     }
     
-    // Adjust reverb lowcut filter
+    // Adjust reverb lowcut
     function adjustReverbLowcut(direction) {
-        if (!reverbLowcutNode || !isAudioContextInitialized) return;
+        if (!reverbLowcutNode || !isAudioContextInitialized || !effectsActive) return;
         
         resumeAudioContext();
         
-        let step = currentLowcutFreq * 0.1; // 10% step
+        let step = currentLowcutFreq * 0.1;
         if (direction === 'up') {
             currentLowcutFreq = Math.min(REVERB_LOWCUT_MAX, currentLowcutFreq + step);
         } else {
@@ -536,7 +617,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
     
-    // Reset reverb to default
+    // Reset reverb
     function resetReverbKnobToDefault() {
         reverbSlider.value = 0;
         reverbSlider.dispatchEvent(new Event('input'));
@@ -546,11 +627,20 @@ document.addEventListener("DOMContentLoaded", function() {
     // AUDIO EFFECTS: FILTER
     // =====================================
     
-    // Toggle filter effect
+    // Toggle filter
     function toggleFilter() {
-        if (!isAudioContextInitialized || !effectsActive) {
-            initializeAudioContext();
-            if (!isAudioContextInitialized) return;
+        if (!isAudioContextInitialized) {
+            try {
+                initializeAudioContext();
+            } catch (e) {
+                console.error("Cannot initialize audio for filter:", e);
+                return;
+            }
+        }
+        
+        if (!effectsActive) {
+            console.log("Effects not active, can't toggle filter");
+            return;
         }
         
         filterActive = !filterActive;
@@ -558,14 +648,14 @@ document.addEventListener("DOMContentLoaded", function() {
         applyAudioFilter();
     }
     
-    // Apply filter settings
+    // Apply filter
     function applyAudioFilter() {
-        if (!filterNode || !isAudioContextInitialized) return;
+        if (!filterNode || !isAudioContextInitialized || !effectsActive) return;
         
         resumeAudioContext();
         
         if (!filterActive) {
-            // Bypass filter
+            // Bypass
             filterNode.type = 'allpass';
             filterNode.frequency.setValueAtTime(
                 audioContext.sampleRate / 2, 
@@ -575,7 +665,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
         
-        // Apply active filter
+        // Apply filter
         const value = parseInt(filterSlider.value);
         const maxFreq = audioContext.sampleRate / 2;
         const minFreq = 20;
@@ -583,19 +673,19 @@ document.addEventListener("DOMContentLoaded", function() {
         const transitionTime = 0.02;
         
         if (value === 50) {
-            // Center position - neutral
+            // Center - neutral
             filterNode.type = 'lowpass';
             filterNode.frequency.linearRampToValueAtTime(maxFreq * 0.99, now + transitionTime);
             filterNode.Q.linearRampToValueAtTime(1, now + transitionTime);
         } else if (value < 50) {
-            // Low-pass filter
+            // Low-pass
             filterNode.type = 'lowpass';
             const normalizedValue = (49 - value) / 49;
             const freq = minFreq * Math.pow(maxFreq / minFreq, 1 - normalizedValue);
             filterNode.frequency.linearRampToValueAtTime(Math.max(minFreq, freq), now + transitionTime);
             filterNode.Q.linearRampToValueAtTime(1 + normalizedValue * 5, now + transitionTime);
         } else {
-            // High-pass filter
+            // High-pass
             filterNode.type = 'highpass';
             const normalizedValue = (value - 51) / 49;
             const freq = minFreq * Math.pow(maxFreq / minFreq, normalizedValue);
@@ -614,7 +704,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
     
-    // Reset filter to center
+    // Reset filter
     function resetFilterKnobToCenter() {
         filterSlider.value = 50;
         filterSlider.dispatchEvent(new Event('input'));
@@ -624,7 +714,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // VISUALIZER
     // =====================================
     
-    // Initialize canvas for visualizer
+    // Initialize canvas
     if (waveformCanvas) {
         canvas = waveformCanvas;
         canvasCtx = canvas.getContext('2d');
@@ -636,26 +726,26 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
     
-    // Draw audio visualizer
+    // Draw visualizer
     function drawVisualizer() {
         const zoomFactor = 1;
         
-        // Stop if canvas or context is unavailable
+        // Ensure canvas is available
         if (!canvasCtx || !canvas) {
             visualizerAnimationId = null;
             return;
         }
         
-        // Get theme colors from CSS
+        // Get theme colors
         const computedStyle = getComputedStyle(document.documentElement);
         const strokeColor = computedStyle.getPropertyValue('--accent-color').trim();
         const idleColor = computedStyle.getPropertyValue('--slider-bg').trim();
         
-        // Continue animation if playing and effects are enabled
+        // Draw active waveform or idle state
         if (!audioPlayer.paused && isAudioContextInitialized && analyserNode && effectsActive) {
             visualizerAnimationId = requestAnimationFrame(drawVisualizer);
             
-            // Get waveform data
+            // Get data
             analyserNode.getByteTimeDomainData(dataArray);
             
             // Clear canvas
@@ -702,18 +792,18 @@ document.addEventListener("DOMContentLoaded", function() {
     // VOLUME CONTROL
     // =====================================
     
-    // Apply volume to both Web Audio and direct audio
+    // Apply volume 
     function applyVolume() {
         const value = parseInt(volumeSlider.value);
         volumeValue.textContent = `${value}%`;
         
-        // Set volume for HTML Audio element (direct playback)
+        // Always set volume directly on audio element
         audioPlayer.volume = value / 100;
         
-        // Set volume for Web Audio API (effects mode)
+        // Set Web Audio volume if active
         if (gainNode && isAudioContextInitialized && effectsActive) {
             resumeAudioContext();
-            const volume = Math.pow(value / 100, 2); // Non-linear curve for better control
+            const volume = Math.pow(value / 100, 2); 
             gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
         }
     }
@@ -726,7 +816,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
     
-    // Toggle between light and dark theme
+    // Toggle theme
     function toggleTheme() {
         const currentTheme = document.documentElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
@@ -824,6 +914,8 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Initialize player controls
     function initializeControls() {
+        console.log("Initializing player...");
+        
         // Set up filter knob
         filterSlider.value = 50;
         updateFilterKnobVisual(50);
@@ -838,6 +930,21 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbActive = false;
         }
         
+        // CRITICAL: Apply proxy to all audio links
+        console.log("Applying proxy to all audio links...");
+        document.querySelectorAll(".episode-link").forEach(link => {
+            const originalHref = link.getAttribute("href");
+            console.log("Processing link:", originalHref);
+            const proxiedHref = getProxiedUrl(originalHref);
+            
+            // Store original URL
+            link.setAttribute("data-original-url", originalHref);
+            
+            // Update href with proxied URL
+            link.setAttribute("href", proxiedHref);
+            console.log("Updated to:", proxiedHref);
+        });
+        
         // Set up background playback
         setupBackgroundPlayback();
         
@@ -846,7 +953,7 @@ document.addEventListener("DOMContentLoaded", function() {
         volumeSlider.value = savedVolume !== null ? savedVolume : 80;
         volumeValue.textContent = `${volumeSlider.value}%`;
         
-        // Set direct volume immediately (Web Audio volume will be set on initialization)
+        // Set direct volume immediately
         audioPlayer.volume = parseInt(volumeSlider.value) / 100;
         
         // Set up featured tags
@@ -860,7 +967,7 @@ document.addEventListener("DOMContentLoaded", function() {
         
         // Draw initial visualizer state
         if (canvasCtx) {
-            requestAnimationFrame(drawVisualizer);
+            drawVisualizer();
         }
         
         console.log("Player initialized successfully");
@@ -941,8 +1048,12 @@ document.addEventListener("DOMContentLoaded", function() {
         if (document.visibilityState === 'visible' && !isAudioContextInitialized) {
             // Initialize effects on first play if visible
             setTimeout(() => {
-                initializeAudioContext();
-            }, 100);
+                try {
+                    initializeAudioContext();
+                } catch (err) {
+                    console.error("Failed to initialize audio effects on play:", err);
+                }
+            }, 300);
         } else if (isAudioContextInitialized && !effectsActive && document.visibilityState === 'visible') {
             // Re-enable effects if they were disabled
             enableEffects();
@@ -990,6 +1101,31 @@ document.addEventListener("DOMContentLoaded", function() {
         currentPlayingItem = null;
     });
     
+    // Error handling for audio
+    audioPlayer.addEventListener("error", function(e) {
+        console.error("Audio error:", audioPlayer.error);
+        if (audioPlayer.error && audioPlayer.error.code) {
+            switch(audioPlayer.error.code) {
+                case 1: // MEDIA_ERR_ABORTED
+                    console.error("Audio playback aborted");
+                    break;
+                case 2: // MEDIA_ERR_NETWORK
+                    console.error("Network error during audio loading");
+                    alert("Network error loading audio. Please check your connection.");
+                    break;
+                case 3: // MEDIA_ERR_DECODE
+                    console.error("Audio decoding error");
+                    break;
+                case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                    console.error("Audio format not supported");
+                    alert("This audio format is not supported by your browser.");
+                    break;
+                default:
+                    console.error("Unknown audio error");
+            }
+        }
+    });
+    
     // Window resize
     window.addEventListener('resize', () => {
         if (canvas) {
@@ -1006,11 +1142,13 @@ document.addEventListener("DOMContentLoaded", function() {
         const forwardBtn = item.querySelector(".forward-btn");
         const playPauseBtn = item.querySelector(".play-pause-btn");
         
-        // Prevent default link behavior
+        // Prevent default link behavior and play track
         if (episodeLink) {
             episodeLink.addEventListener("click", function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 playTrack(item);
+                return false;
             });
         }
         
