@@ -821,11 +821,12 @@ footer {
        position: absolute;
        width: 1px;
        background-color: var(--cable-color);
+       opacity: 70%;
    
        /* Positioning */
        left: 52%;
        transform: translateX(-50%);
-       top: 68px; /* Keep overlap */
+       top: 66px; /* Keep overlap */
        height: 28px; /* Keep overlap */
    
        z-index: -1; /* UPDATED: Place it behind other elements in the container */
