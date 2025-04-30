@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const themeToggle = document.querySelector(".theme-toggle-slider");
     const waveformCanvas = document.getElementById('waveformCanvas'); // Get canvas element
 
+    checkNativeAppSupport();
+
     // --- State Variables ---
     let filterActive = false;
     let reverbActive = false;
@@ -56,72 +58,227 @@ document.addEventListener("DOMContentLoaded", function() {
         console.warn("Waveform canvas element ('waveformCanvas') not found!");
     }
 
-        // =====================================
-    // Media Session API Integration
     // =====================================
+    // Mobile Background Playback Setup
+    // =====================================
+    function enableBackgroundPlayback() {
+        // Set critical audio attributes
+        audioPlayer.setAttribute('playsinline', '');
+        audioPlayer.setAttribute('webkit-playsinline', '');
+        audioPlayer.setAttribute('x-webkit-airplay', 'allow');
+        audioPlayer.setAttribute('data-keepalive', 'true');
+        audioPlayer.setAttribute('controlsList', 'nodownload');
+        
+        // Create a special "silent" audio element to keep the audio context alive
+        const silentAudio = document.createElement('audio');
+        silentAudio.setAttribute('loop', '');
+        silentAudio.setAttribute('playsinline', '');
+        silentAudio.setAttribute('webkit-playsinline', '');
+        silentAudio.volume = 0.0001; // Nearly silent
+        silentAudio.src = 'data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAABhTEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQAB9AAAAnGMHkkIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQxAADgnABGiAAQBCqgCRMAAgEAH///////////////7+n/9FTuQsQH//////2NG0jWUGlio5gLQTOtIoeR2WX////X4s9Atb/JRVCbBUpeRUq//////////////////9RUi0f2jn/+xDECgPCjAEQAABN4AAANIAAAAQVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==';
+        document.body.appendChild(silentAudio);
+    
+        // Special iOS workarounds
+        let pageWasHidden = false;
+        
+        // 1. Handle visibility changes
+        document.addEventListener('visibilitychange', function() {
+            console.log("Visibility changed: ", document.visibilityState);
+            
+            if (document.visibilityState === 'hidden') {
+                pageWasHidden = true;
+                
+                // Only do this for actively playing audio
+                if (!audioPlayer.paused) {
+                    console.log("Page hidden but audio playing - attempting to keep alive");
+                    
+                    // Try playing the silent audio to keep audio context alive
+                    silentAudio.play().catch(e => console.log("Silent audio play failed:", e));
+                    
+                    // iOS Safari specific: try to keep the main player alive
+                    navigator.mediaSession?.setActionHandler('pause', () => {
+                        console.log("Preventing system pause while hidden");
+                        return false; // Attempt to block pause
+                    });
+                }
+            } else if (document.visibilityState === 'visible' && pageWasHidden) {
+                pageWasHidden = false;
+                
+                // If audio was supposed to be playing but got paused
+                if (currentPlayingItem && audioPlayer.paused) {
+                    console.log("Restarting audio after page became visible again");
+                    audioPlayer.play().catch(e => console.log("Auto-resume failed:", e));
+                }
+                
+                // Reset media session handlers
+                setupMediaSession();
+            }
+        });
+        
+        // 2. Handle page unload - attempt to keep audio alive
+        window.addEventListener('beforeunload', function(e) {
+            if (!audioPlayer.paused) {
+                // Request to keep running in background (may not work in all browsers)
+                navigator.mediaSession?.setActionHandler('stop', null);
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+        
+        // 3. Handle iOS audio interruptions (calls, etc)
+        audioPlayer.addEventListener('pause', function() {
+            // This detects system-initiated pauses
+            if (document.visibilityState === 'hidden' && currentPlayingItem) {
+                console.log("System pause detected while hidden - attempting to resume");
+                // Attempt to restart playback after a short delay
+                setTimeout(() => {
+                    if (document.visibilityState === 'hidden' && currentPlayingItem) {
+                        audioPlayer.play().catch(e => console.log("Auto-resume after interruption failed:", e));
+                    }
+                }, 500);
+            }
+        });
+        
+        // 4. iOS wake lock attempt (not standard, might not work)
+        try {
+            if ('wakeLock' in navigator) {
+                // Request a wake lock when playback starts
+                audioPlayer.addEventListener('play', async () => {
+                    try {
+                        const wakeLock = await navigator.wakeLock.request('screen');
+                        console.log('Wake lock activated');
+                        
+                        wakeLock.addEventListener('release', () => {
+                            console.log('Wake lock released');
+                        });
+                        
+                        // Store reference to release later
+                        audioPlayer.wakeLock = wakeLock;
+                    } catch (err) {
+                        console.log('Wake lock request failed:', err);
+                    }
+                    try {
+                        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+                            navigator.mediaSession.setPositionState({
+                                duration: audioPlayer.duration || 0,
+                                playbackRate: audioPlayer.playbackRate || 1,
+                                position: audioPlayer.currentTime || 0
+                            });
+                        }
+                    } catch (e) {
+                        console.log("Unable to update media session position:", e);
+                    }
+                });
+                
+                // Release wake lock when playback ends
+                audioPlayer.addEventListener('ended', () => {
+                    if (audioPlayer.wakeLock) {
+                        audioPlayer.wakeLock.release();
+                        audioPlayer.wakeLock = null;
+                    }
+                });
+                
+                audioPlayer.addEventListener('pause', () => {
+                    // Only release if intentionally paused, not on background
+                    if (document.visibilityState === 'visible' && audioPlayer.wakeLock) {
+                        audioPlayer.wakeLock.release();
+                        audioPlayer.wakeLock = null;
+                    }
+                });
+            }
+        } catch (e) {
+            console.log("Wake lock API not supported:", e);
+        }
+    }
+    
 
-    function updateMediaSession(trackName) {
+    // Set up Media Session API for system media controls
+    function setupMediaSession() {
+        if ('mediaSession' in navigator) {
+            console.log("Setting up media session handlers");
+            
+            // Play action
+            navigator.mediaSession.setActionHandler('play', function() {
+                console.log("Media session play triggered");
+                if (currentPlayingItem) {
+                    audioPlayer.play().catch(error => console.error("Error playing audio:", error));
+                    updateIcon(currentPlayingItem);
+                }
+            });
+            
+            // Pause action
+            navigator.mediaSession.setActionHandler('pause', function() {
+                console.log("Media session pause triggered");
+                audioPlayer.pause();
+                if (currentPlayingItem) {
+                    updateIcon(currentPlayingItem);
+                }
+            });
+            
+            // Seek backward action
+            navigator.mediaSession.setActionHandler('seekbackward', function(details) {
+                console.log("Media session seek backward triggered");
+                const skipTime = details.seekOffset || SKIP_TIME;
+                if (audioPlayer && !isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - skipTime);
+                    updateTime();
+                }
+            });
+            
+            // Seek forward action
+            navigator.mediaSession.setActionHandler('seekforward', function(details) {
+                console.log("Media session seek forward triggered");
+                const skipTime = details.seekOffset || SKIP_TIME;
+                if (audioPlayer && !isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + skipTime);
+                    updateTime();
+                }
+            });
+            
+            // Set seeking step size if supported
+            if ('setPositionState' in navigator.mediaSession) {
+                navigator.mediaSession.setPositionState({
+                    duration: audioPlayer.duration || 0,
+                    playbackRate: audioPlayer.playbackRate || 1,
+                    position: audioPlayer.currentTime || 0
+                });
+            }
+            
+            // Add stop handler
+            try {
+                navigator.mediaSession.setActionHandler('stop', function() {
+                    console.log("Media session stop triggered");
+                    audioPlayer.pause();
+                    audioPlayer.currentTime = 0;
+                    if (currentPlayingItem) {
+                        currentPlayingItem.classList.remove("expanded");
+                        updateIcon(currentPlayingItem);
+                        const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
+                        if (timeIndicator) timeIndicator.style.display = "none";
+                        const progressFilled = currentPlayingItem.querySelector(".progress-filled");
+                        if (progressFilled) progressFilled.style.width = "0%";
+                        currentPlayingItem = null;
+                    }
+                });
+            } catch (error) {
+                console.log("Stop action not supported:", error);
+            }
+        }
+    }
+
+    // Update media session metadata when track changes
+    function updateMediaSessionMetadata(trackName, episodeDate) {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: trackName, // Use the track name
-                artist: 'offbeat', // You can set a constant artist name
-                //  album: 'Offbeat Archive', // Optional album name
-                //  artwork: [  // Optional artwork (you'd need an image file)
-                //      { src: 'path/to/artwork-small.png',  sizes: '96x96',   type: 'image/png' },
-                //      { src: 'path/to/artwork-large.png',  sizes: '512x512', type: 'image/png' }
-                //  ]
+                title: trackName || 'Offbeat Radio',
+                artist: episodeDate || 'Live radio show',
+                album: 'Offbeat Archive',
+                artwork: [
+                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '512x512', type: 'image/jpeg' }
+                ]
             });
-
-            navigator.mediaSession.setActionHandler('play',    () => { if (audioPlayer.paused) audioPlayer.play();  });
-            navigator.mediaSession.setActionHandler('pause',   () => { audioPlayer.pause(); });
-            navigator.mediaSession.setActionHandler('seekbackward', () => { audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME); updateTime(); });
-            navigator.mediaSession.setActionHandler('seekforward',  () => { audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME); updateTime(); });
         }
     }
-
-    // Call this whenever a new track starts playing
-    function playTrack(item) {
-        // ... (Your existing playTrack function)
-        audioPlayer.play().catch(error => console.error("Error playing audio:", error));
-        currentPlayingItem = item;
-        item.classList.add("expanded");
-        updateIcon(item);
-        const timeIndicator = item.querySelector(".time-indicator");
-        if (timeIndicator) {
-            timeIndicator.style.display = "block";
-        }
-
-        //  UPDATE: Add this line to update media session
-        const trackName = link.getAttribute("data-track");
-        updateMediaSession(trackName);
-    }
-
-    // Update existing play/pause functionality
-    function updateIcon(item) {
-        if (!item) return;
-        const iconElement = item.querySelector(".file-icon svg");
-        const expandedPlayBtn = item.querySelector(".play-pause-btn svg");
-        const isPaused = audioPlayer.paused;
-        const newIcon = isPaused ? "play" : "pause";
-
-        if (iconElement) iconElement.setAttribute("data-icon", newIcon);
-        if (expandedPlayBtn) expandedPlayBtn.setAttribute("data-icon", newIcon);
-
-        //  UPDATE: Also update media session state
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = isPaused ? 'paused' : 'playing';
-        }
-    }
-
-    //  UPDATE: Add this event listener to prevent pause when the page is hidden
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden && !audioPlayer.paused) {
-            //  Do nothing here - let the audio continue
-        } else if (!document.hidden && !audioPlayer.paused) {
-            //  If returning to the page, resume playback if it was playing
-            audioPlayer.play().catch(error => console.error("Error resuming playback:", error));
-        }
-    });
 
     // =====================================
     // Web Audio API Initialization
@@ -242,7 +399,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log("Enhanced club/DJ-style reverb impulse created.");
     }
 
- // =====================================
+    // =====================================
     // Waveform Visualizer Drawing Function
     // =====================================
     function drawVisualizer() {
@@ -317,7 +474,6 @@ document.addEventListener("DOMContentLoaded", function() {
              canvasCtx.stroke();
         }
     }
-
 
     // =====================================
     // Theme Toggle
@@ -400,6 +556,11 @@ document.addEventListener("DOMContentLoaded", function() {
             audioPlayer.play().catch(error => console.error("Error playing audio:", error));
             currentPlayingItem = item;
 
+            // Update media session metadata for lock screen controls
+            const trackName = item.querySelector('.file-number')?.textContent || '';
+            const episodeDate = item.querySelector('.file-date')?.textContent || '';
+            updateMediaSessionMetadata(trackName, episodeDate);
+
             item.classList.add("expanded");
             updateIcon(item); // Set initial icon state
             const timeIndicator = item.querySelector(".time-indicator");
@@ -438,6 +599,15 @@ document.addEventListener("DOMContentLoaded", function() {
         if (progressFilled) {
             const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
             progressFilled.style.width = `${progressPercentage}%`;
+        }
+
+        // Update position state for Media Session API
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            navigator.mediaSession.setPositionState({
+                duration: audioPlayer.duration || 0,
+                playbackRate: audioPlayer.playbackRate,
+                position: audioPlayer.currentTime || 0
+            });
         }
     }
 
@@ -701,6 +871,10 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbActive = false;
         }
 
+        // Enable background playback for mobile
+        enableBackgroundPlayback();
+        setupMediaSession();
+
         // Apply initial volume (will be done in initializeAudioContext if called later)
         // applyVolume();
 
@@ -926,5 +1100,35 @@ document.addEventListener("DOMContentLoaded", function() {
             adjustReverbLowcut('up');
         }
     });
+
+    document.addEventListener('click', function() {
+        // Try to resume AudioContext on any user interaction
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().catch(e => console.error("Error resuming AudioContext:", e));
+        }
+        
+        // iOS requires a user interaction to start audio playback the first time
+        if (silentAudio && silentAudio.paused) {
+            silentAudio.play().catch(e => console.log("Silent audio play failed:", e));
+        }
+    }, {once: true});
+
+    function checkNativeAppSupport() {
+        // Check if we're running in a PWA context
+        const isInPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone || 
+                        document.referrer.includes('android-app://');
+        
+        if (!isInPWA) {
+            console.log("Not running as PWA - background audio may be limited");
+        }
+        
+        // Check for iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+            console.log("iOS detected - applying specific iOS audio workarounds");
+            document.documentElement.classList.add('ios-device');
+        }
+    }
 
 }); // End DOMContentLoaded
