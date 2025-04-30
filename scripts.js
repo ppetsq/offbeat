@@ -60,96 +60,107 @@ document.addEventListener("DOMContentLoaded", function() {
     // Mobile Background Playback Setup
     // =====================================
     function enableBackgroundPlayback() {
-        // Set audio element attributes for background playback
-        audioPlayer.setAttribute('playsinline', ''); // iOS playback within page
-        audioPlayer.setAttribute('webkit-playsinline', ''); // Older iOS versions
-        audioPlayer.setAttribute('preload', 'metadata'); // Better than 'none' for playback
-
-        // Prevent browser from pausing audio when inactive
-        document.addEventListener('visibilitychange', function() {
-            // Keep playing even when the page is hidden
-            if (document.visibilityState === 'hidden' && !audioPlayer.paused) {
-                // Force continue playing in background
+        // Set essential attributes for mobile background playback
+        audioPlayer.setAttribute('playsinline', ''); 
+        audioPlayer.setAttribute('webkit-playsinline', '');
+        audioPlayer.setAttribute('preload', 'metadata');
+        audioPlayer.setAttribute('crossorigin', 'anonymous');
+        
+        // This is important for iOS
+        document.addEventListener('touchstart', function() {
+            // Create empty buffer and play it to enable audio
+            if (!audioContext) {
                 try {
-                    const silentPromise = audioPlayer.play();
-                    if (silentPromise !== undefined) {
-                        silentPromise.catch(e => {
-                            console.log('Background play prevented by browser', e);
-                        });
+                    // Initialize audio on first touch if not already done
+                    initializeAudioContext();
+                } catch (e) {
+                    console.warn("Could not initialize audio context on touch", e);
+                }
+            }
+        }, { once: true });
+    }
+
+    // Replace the current setupBackgroundPlayback function with this improved version
+
+function setupBackgroundPlayback() {
+    // Set audio attributes for mobile
+    audioPlayer.setAttribute('playsinline', '');
+    audioPlayer.setAttribute('webkit-playsinline', '');
+    audioPlayer.setAttribute('preload', 'metadata');
+    audioPlayer.setAttribute('crossorigin', 'anonymous');
+    
+    // Use MediaSession API for lock screen controls
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', () => {
+            if (currentPlayingItem) audioPlayer.play();
+        });
+        
+        navigator.mediaSession.setActionHandler('pause', () => {
+            audioPlayer.pause();
+        });
+        
+        navigator.mediaSession.setActionHandler('seekbackward', () => {
+            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
+        });
+        
+        navigator.mediaSession.setActionHandler('seekforward', () => {
+            audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
+        });
+    }
+    
+    // CRITICAL FIX: Bypass audio context when in background
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            if (!audioPlayer.paused && audioContext) {
+                try {
+                    // Save audio position and bypass Web Audio API when in background
+                    const currentVolume = parseFloat(volumeSlider.value) / 100;
+                    
+                    // Disconnect audio context but keep native audio playing
+                    if (isAudioContextInitialized) {
+                        // Save current playback state
+                        const wasPlaying = !audioPlayer.paused;
+                        const currentTime = audioPlayer.currentTime;
+                        const currentSrc = audioPlayer.src;
+                        
+                        // Temporarily disconnect audio processing chain
+                        if (gainNode) gainNode.disconnect();
+                        
+                        // If there was an active source, directly control the HTML audio element
+                        if (wasPlaying) {
+                            // Apply direct volume equivalent to processed volume
+                            audioPlayer.volume = currentVolume;
+                        }
                     }
                 } catch (e) {
-                    console.log('Error keeping audio playing in background', e);
+                    console.log("Background audio bypass error:", e);
                 }
             }
-        });
-    }
-
-    function setupBackgroundPlayback() {
-        // Set audio attributes for mobile
-        audioPlayer.setAttribute('playsinline', '');
-        audioPlayer.setAttribute('webkit-playsinline', '');
-        
-        // Use MediaSession API for lock screen controls
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', () => {
-                if (currentPlayingItem) audioPlayer.play();
-            });
-            
-            navigator.mediaSession.setActionHandler('pause', () => {
-                audioPlayer.pause();
-            });
-            
-            navigator.mediaSession.setActionHandler('seekbackward', () => {
-                audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
-            });
-            
-            navigator.mediaSession.setActionHandler('seekforward', () => {
-                audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
-            });
-        }
-        
-        // The key part: detect when page goes to background and bypass audio effects
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'hidden') {
-                if (!audioPlayer.paused && audioContext) {
-                    // Store current volume before disconnecting
-                    const currentVolume = audioPlayer.volume;
-                    
-                    // Bypass Web Audio API when in background
-                    try {
-                        // Temporarily disconnect to allow direct output
-                        if (gainNode && audioContext) {
-                            gainNode.disconnect();
-                            // Set direct volume equivalent to processed volume
-                            const volumeValue = parseInt(volumeSlider.value);
-                            audioPlayer.volume = Math.pow(volumeValue / 100, 2);
-                        }
-                    } catch (e) {
-                        console.log("Background audio bypass error:", e);
-                    }
-                }
-            } else if (document.visibilityState === 'visible') {
-                // Reconnect effects when returning to foreground
-                if (currentPlayingItem && !audioPlayer.paused && audioContext) {
-                    try {
-                        // Re-initialize audio context if needed
-                        if (audioContext.state === 'suspended') {
-                            audioContext.resume();
-                        }
-                        // Reconnect nodes if needed
-                        if (gainNode && !gainNode.numberOfOutputs) {
-                            // The specific reconnection depends on your audio graph
-                            // This is just a placeholder - you'll need to implement
-                            // the proper reconnection logic for your setup
+        } else if (document.visibilityState === 'visible') {
+            // Re-establish audio processing when returning to foreground
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    // If currently playing, reconnect audio graph
+                    if (!audioPlayer.paused && isAudioContextInitialized) {
+                        try {
+                            // Reconnect nodes if needed
                             initializeAudioContext();
+                            applyVolume();
+                            
+                            // Re-apply effects if they were active
+                            if (filterActive) applyAudioFilter();
+                            if (reverbActive) applyReverb();
+                        } catch (e) {
+                            console.log("Foreground audio reconnect error:", e);
                         }
-                    } catch (e) {
-                        console.log("Foreground audio reconnect error:", e);
                     }
-                }
+                }).catch(e => {
+                    console.error("Failed to resume audio context:", e);
+                });
             }
-        });
-    }
+        }
+    });
+}
 
     // Set up Media Session API for system media controls
     function setupMediaSession() {
