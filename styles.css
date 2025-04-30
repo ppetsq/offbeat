@@ -1,834 +1,492 @@
 /* Offbeat.petsq.net - Refined Design */
 
-/* ==================
-   VARIABLE DEFINITIONS
-   ================== */
-   :root {
-    /* Dark Theme (Default) */
-    --bg-color: #050505;
-    --text-color: #e0e0e0;
-    --accent-color: #8B9D83;
-    --accent-hover: #A7C4A0;
-    --secondary-color: #121212;
-    --secondary-hover: #181818;
-    --icon-color: #8B9D83;
-    --date-color: #9ca3af;
-    --border-color: rgba(255, 255, 255, 0.1);
-    --slider-bg: rgba(139, 157, 131, 0.2);
-    --slider-fill: #8B9D83;
-    --button-bg: rgba(139, 157, 131, 0.1);
-    --button-hover: rgba(139, 157, 131, 0.2);
-    --border-radius: 12px;
-    --toggle-knob: #8B9D83;
-    --toggle-bg: rgba(139, 157, 131, 0.2);
-    --toggle-border: rgba(139, 157, 131, 0.3);
-    --center-marker: rgba(139, 157, 131, 0.5);
-    --cable-color: #444444; /* Dark grey for dark theme */
-    --center-marker: rgba(139, 157, 131, 0.5);
-}
-
-/* Light Theme */
-[data-theme="light"] {
-    --bg-color: #f5f5f5;
-    --text-color: #121212;
-    --accent-color: #5A7350;
-    --accent-hover: #425540;
-    --secondary-color: #ffffff;
-    --secondary-hover: #f0f0f0;
-    --icon-color: #5A7350;
-    --date-color: #6b7280;
-    --border-color: rgba(0, 0, 0, 0.1);
-    --slider-bg: rgba(90, 115, 80, 0.2);
-    --slider-fill: #5A7350;
-    --button-bg: rgba(90, 115, 80, 0.1);
-    --button-hover: rgba(90, 115, 80, 0.2);
-    --toggle-knob: #5A7350;
-    --toggle-bg: rgba(90, 115, 80, 0.2);
-    --toggle-border: rgba(90, 115, 80, 0.3);
-    --center-marker: rgba(90, 115, 80, 0.5);
-    --cable-color: #aaaaaa; /* Lighter grey for light theme */
-    --center-marker: rgba(90, 115, 80, 0.5);
-}
-
-/* ==================
-   GENERAL STYLES
-   ================== */
-* {
-    cursor: default !important;
-}
-
-body {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
-    padding: 40px 20px;
-    line-height: 1.5;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-a {
-    color: var(--accent-color);
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-a:hover {
-    color: var(--accent-hover);
-}
-
-/* ==================
-   HEADER STYLES
-   ================== */
-header {
-    margin-bottom: 40px;
-    text-align: left;
-}
-
-.header-content {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 20px;
-    max-width: 650px;
-    margin: auto;
-    flex-wrap: wrap;
-}
-
-.logo {
-    width: 110px;
-    height: 110px;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    flex-shrink: 0;
-}
-
-.logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.text-content {
-    flex-grow: 1;
-    text-align: left;
-    min-width: 200px;
-}
-
-h1 {
-    font-size: 2rem;
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: 0.5px;
-    margin: 0 0 3px 0;
-    color: var(--text-color);
-}
-
-p.subtitle {
-    font-size: 0.95rem;
-    color: var(--date-color);
-    margin: 0 0 4px 0;
-    font-style: italic;
-}
-
-.radio-link {
-    display: inline-block;
-    font-size: 0.9rem;
-}
-
-/* ==================
-   EFFECT CONTROLS STYLES
-   ================== */
-.effect-controls {
-    display: flex;
-    flex-direction: row;
-    gap: 0;
-    align-items: flex-start;
-}
-
-.filter-container, .reverb-container {
-    width: 90px;
-    height: 110px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    flex-shrink: 0;
-    background-color: transparent;
-    padding: 0;
-    position: relative; /* Add this */
-    gap: 10px;
-}
-
-.reverb-container .knob-indicator {
-    transform: translateX(-50%) rotate(-135deg);
-}
-
-/* Knob Styles */
-.knob-wrapper {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin: 0;
-    touch-action: none;
-    aspect-ratio: 1 / 1;
-    z-index: 1; /* ADDED: Ensure knob is above cable */
-}
-
-.knob-visual {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background-color: var(--secondary-hover);
-    border: 2px solid var(--border-color);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.knob-visual::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 1px;
-    height: 5px;
-    background-color: var(--center-marker);
-    border-radius: 1px;
-}
-
-.knob-indicator {
-    width: 4px;
-    height: 40%;
-    background-color: var(--slider-fill);
-    position: absolute;
-    top: 10%;
-    left: 50%;
-    transform-origin: 50% 100%;
-    border-radius: 2px;
-    transform: translateX(-50%) rotate(0deg);
-    transition: transform 0.1s linear;
-    pointer-events: none;
-}
-
-/* Filter and Reverb Toggle Buttons */
-.filter-toggle, .reverb-toggle {
-    width: 70px; /* Wider buttons */
-    height: 32px; /* Taller buttons */
-    font-size: 12px; /* Larger font */
-    font-weight: 500;
-    text-transform: lowercase;
-    background-color: var(--secondary-hover);
-    color: var(--date-color);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0;
-    margin-top: 15px;
-    text-align: center;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    letter-spacing: 0.5px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
-    z-index: 1; /* ADDED: Ensure knob is above cable */
-    
-    /* Ensure no browser default styles */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.filter-toggle.active, .reverb-toggle.active {
-    background-color: var(--secondary-hover);
-    color: var(--accent-color);
-    border-color: var(--accent-color);
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 0 2px var(--accent-color);
-}
-
-/* Prevent browser or OS from applying its own styles to buttons */
-.filter-toggle, .reverb-toggle {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.filter-toggle:hover, .reverb-toggle:hover {
-    background-color: var(--secondary-hover);
-    color: var(--accent-color);
-}
-
-.filter-toggle.active:hover, .reverb-toggle.active:hover {
-    background-color: var(--secondary-hover);
-}
-
-/* Hidden Sliders for Knobs */
-.filter-slider, .reverb-slider {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    cursor: inherit;
-    opacity: 0;
-    z-index: 2;
-    margin: 0;
-    padding: 0;
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-    outline: none;
-    border: none;
-}
-
-.filter-slider::-webkit-slider-runnable-track, 
-.filter-slider::-moz-range-track,
-.filter-slider::-ms-track,
-.reverb-slider::-webkit-slider-runnable-track, 
-.reverb-slider::-moz-range-track,
-.reverb-slider::-ms-track {
-    background: transparent; 
-    border: none;
-}
-
-.filter-slider::-webkit-slider-thumb,
-.filter-slider::-moz-range-thumb,
-.filter-slider::-ms-thumb,
-.reverb-slider::-webkit-slider-thumb,
-.reverb-slider::-moz-range-thumb,
-.reverb-slider::-ms-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent; 
-    border: none;
-    width: 1px; 
-    height: 1px;
-}
-
-/* ==================
-   MASTER VOLUME CONTROL
-   ================== */
-.master-controls {
-    display: flex;
-    max-width: 650px;
-    width: 100%;
-    margin: 20px auto 25px auto;
-    box-sizing: border-box;
-    gap: 0;
-}
-
-.volume-container {
-    flex: 1;
-}
-
-.volume-control {
-    display: flex;
-    flex-direction: column;
-    background-color: var(--secondary-color);
-    padding: 12px 16px;
-    border-radius: var(--border-radius);
-    box-sizing: border-box;
-    width: 100%;
-    margin: 0;
-}
-
-.volume-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
-    color: var(--date-color);
-}
-
-.volume-value {
-    font-family: 'Space Grotesk', monospace;
-}
-
-.volume-slider {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 6px;
-    background-color: var(--slider-bg);
-    outline: none;
-    border-radius: 3px;
-    transition: background 0.2s;
-}
-
-.volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
-}
-
-.volume-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
-    border: none;
-}
-
-.volume-slider::-ms-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
-}
-
-/* ==================
-   FILE LIST STYLES
-   ================== */
-.file-list {
-    max-width: 650px;
-    margin: auto;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-}
-
-.file-item {
-    background-color: var(--secondary-color);
-    padding: 0;
-    border-radius: var(--border-radius);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s ease;
-    text-align: left;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-}
-
-.file-item:hover {
-    background-color: var(--secondary-hover);
-}
-
-.episode-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 20px;
-    color: inherit;
-    text-decoration: none;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.right-elements {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.file-info {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.file-number-container {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.file-number {
-    font-weight: 600;
-    color: var(--accent-color);
-    display: inline-block;
-    margin-bottom: 2px;
-}
-
-.file-date {
-    font-size: 0.85rem;
-    color: var(--date-color);
-}
-
-.file-icon {
-    color: var(--icon-color);
-    font-size: 1.2rem;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Featured Tag Styles */
-.file-featured {
-    position: relative;
-}
-
-.feat-tag {
-    background-color: rgba(139, 157, 131, 0.15);
-    color: var(--accent-color);
-    font-size: 0.6rem;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    border: 1px solid var(--toggle-border);
-    display: inline-flex;
-    align-items: center;
-    margin-left: 6px;
-    height: 14px;
-    line-height: 1;
-}
-
-.time-indicator {
-    font-size: 0.75rem;
-    color: var(--date-color);
-    min-width: 70px;
-    text-align: right;
-    display: none; /* Hide by default */
-}
-
-/* ==================
-   PLAYER CONTROLS
-   ================== */
-.expanded-player {
-    display: none;
-    padding: 0 20px 15px 20px;
-    transition: all 0.3s ease;
-}
-
-.file-item.expanded .expanded-player {
-    display: block;
-}
-
-.progress-container {
-    margin-bottom: 12px;
-}
-
-.progress-bar {
-    height: 6px;
-    background-color: var(--slider-bg);
-    border-radius: 3px;
-    position: relative;
-    cursor: pointer;
-    margin-bottom: 5px;
-}
-
-.progress-filled {
-    position: absolute;
-    height: 100%;
-    background-color: var(--slider-fill);
-    border-radius: 3px;
-    width: 0%;
-    transition: width 0.1s ease;
-}
-
-.progress-time {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: var(--date-color);
-}
-
-.player-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-}
-
-.control-btn {
-    background-color: var(--button-bg);
-    border: none;
-    color: var(--accent-color);
-    border-radius: 5px;
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease;
-}
-
-.control-btn:hover {
-    background-color: var(--button-hover);
-}
-
-.play-pause-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    padding: 0;
-}
-
-/* ==================
-   THEME TOGGLE
-   ================== */
-.theme-toggle {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-}
-
-.theme-toggle-label {
-    font-size: 0.75rem;
-    color: var(--date-color);
-}
-
-.theme-toggle-slider {
-    position: relative;
-    width: 36px;
-    height: 14px;
-    background-color: var(--toggle-bg);
-    border-radius: 10px;
-    border: 1px solid var(--toggle-border);
-    overflow: visible;
-    box-sizing: content-box;
-}
-
-.theme-toggle-knob {
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    background-color: var(--toggle-knob);
-    border-radius: 50%;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    transition: left 0.3s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    z-index: 2;
-    border: none;
-}
-
-[data-theme="light"] .theme-toggle-knob {
-    left: 14px;
-}
-
-/* ==================
-   FOOTER STYLES
-   ================== */
-footer {
-    margin-top: 60px;
-    font-size: 0.85rem;
-    color: var(--date-color);
-    text-align: center;
-}
-
-/* ==================
-   MOBILE STYLES
-   ================== */
-@media (max-width: 600px) {
-    /* Adjust header layout for mobile */
-    body {
-        padding: 30px 15px;
-    }
-    
-    h1 { 
-        font-size: 1.5rem; 
-        line-height: 1.05; 
-    }
-    
-    .header-content {
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-        text-align: center;
-    }
-    
-    .logo {
-        width: 120px;
-        height: 120px;
-        margin: 0 auto;
-    }
-    
-    /* Fix for effect controls on mobile */
-    .effect-controls {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        width: 100%;
-        gap: 30px;
-        margin-top: 10px;
-        order: 1;
-    }
-    
-    /* Keep knobs perfectly round on mobile */
-    .filter-container, .reverb-container {
-        width: 80px;
-        height: 100px;
-    }
-    
-    /* Ensure knobs remain round by maintaining aspect ratio */
-    .knob-wrapper {
-        width: 60px;
-        height: 60px;
-        min-width: 60px;
-        min-height: 60px;
-    }
-    
-    /* Keep button size consistent between mobile and desktop */
-    .filter-toggle, .reverb-toggle {
-        width: 60px;
-        height: 28px;
-        font-size: 11px;
-        font-weight: 500;
-        text-transform: lowercase;
-    }
-    
-    .text-content {
-        order: 2;
-        text-align: center;
-        margin-top: 10px;
-        flex-basis: 100%;
-    }
-    
-    .player-controls {
-        gap: 15px;
-    }
-    
-    .control-btn {
-        padding: 6px 12px;
-        font-size: 0.75rem;
-    }
-    
-    .theme-toggle {
-        position: static;
-        justify-content: center;
-        margin: 20px 0;
-    }
-    
-    .master-controls {
-        padding: 0 10px;
-    }
-}
-
-/* ==================
-    WAVEFORM VISUALIZER
-    ================== */
-
-    .visualizer-container {
-        width: 100%; /* Take full width within master controls */
-        margin-top: 15px; /* Add some space above */
-        background-color: var(--secondary-color); /* Match background */
-        border-radius: var(--border-radius);
-        padding: 14px 16px;
-        box-sizing: border-box;
-    }
-   
-    #waveformCanvas {
-        display: block; /* Remove extra space below */
-        width: 100%;  /* Make canvas fill container width */
-        height: 40px; /* Set a fixed height */
-        border-radius: 6px; /* Slightly rounded corners */
-    }
-   
-    /* Adjust master controls layout if needed */
-    .master-controls {
-        flex-direction: column; /* Stack volume and visualizer */
-        gap: 15px; /* Space between volume and visualizer */
-    }
-   
-    /* Mobile Adjustments */
-    @media (max-width: 600px) {
-        .visualizer-container {
+        /* General Styles */
+        :root {
+            /* Dark Theme (Default) */
+            --bg-color: #050505;
+            --text-color: #e0e0e0;
+            --accent-color: #8B9D83;
+            --accent-hover: #A7C4A0;
+            --secondary-color: #121212;
+            --secondary-hover: #181818;
+            --icon-color: #8B9D83;
+            --date-color: #9ca3af;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --slider-bg: rgba(139, 157, 131, 0.2);
+            --slider-fill: #8B9D83;
+            --button-bg: rgba(139, 157, 131, 0.1);
+            --button-hover: rgba(139, 157, 131, 0.2);
+            --border-radius: 12px;
+            --toggle-knob: #8B9D83;
+            --toggle-bg: rgba(139, 157, 131, 0.2);
+            --toggle-border: rgba(139, 157, 131, 0.3);
+        }
+        
+        /* Light Theme */
+        [data-theme="light"] {
+            --bg-color: #f5f5f5;
+            --text-color: #121212;
+            --accent-color: #5A7350;
+            --accent-hover: #425540;
+            --secondary-color: #ffffff;
+            --secondary-hover: #f0f0f0;
+            --icon-color: #5A7350;
+            --date-color: #6b7280;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --slider-bg: rgba(90, 115, 80, 0.2);
+            --slider-fill: #5A7350;
+            --button-bg: rgba(90, 115, 80, 0.1);
+            --button-hover: rgba(90, 115, 80, 0.2);
+            --toggle-knob: #5A7350;
+            --toggle-bg: rgba(90, 115, 80, 0.2);
+            --toggle-border: rgba(90, 115, 80, 0.3);
+        }
+
+        body {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.5;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Container for better spacing */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: row-reverse; /* Reverse the order to push logo to right */
+            align-items: center;
+            gap: 15px;
+            max-width: 650px; /* Match the width of file-list for alignment */
+            margin: auto;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .text-content {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            line-height: 1.1;
+            letter-spacing: 0.5px;
+            margin: 0 0 3px 0;
+            color: var(--text-color);
+        }
+
+        @media (max-width: 600px) {
+            .h1 { font-size: 1rem; line-height: 1.05; }
+        }
+
+        p.subtitle {
+            font-size: 0.95rem;
+            color: var(--date-color);
+            margin: 0 0 4px 0;
+            font-style: italic;
+        }
+
+        .radio-link {
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        /* Links */
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--accent-hover);
+        }
+
+        /* File List Styling */
+        .file-list {
+            max-width: 650px;
+            margin: auto;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .file-item {
+            background-color: var(--secondary-color);
+            padding: 0;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease; /* Only change background color, not position */
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .file-item:hover {
+            /* Removed transform that caused rising animation */
+            background-color: var(--secondary-hover);
+        }
+
+        .episode-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            color: inherit;
+            text-decoration: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .right-elements {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Added gap between elements */
+        }
+
+        .file-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .file-number-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-number {
+            font-weight: 600;
+            color: var(--accent-color);
+            display: inline-block;
+            margin-bottom: 2px;
+        }
+
+        .file-date {
+            font-size: 0.85rem;
+            color: var(--date-color);
+        }
+
+        .file-icon {
+            color: var(--icon-color);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-featured {
+            position: relative;
+        }
+
+        .feat-tag {
+            background-color: rgba(139, 157, 131, 0.15);
+            color: var(--accent-color);
+            font-size: 0.6rem; /* Smaller font size */
+            padding: 2px 6px; /* Smaller padding */
+            border-radius: 3px; /* Slightly smaller radius */
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border: 1px solid var(--toggle-border);
+            display: inline-flex;
+            align-items: center;
+            margin-left: 6px; /* Add some space between title and tag */
+            height: 14px; /* Control the height */
+            line-height: 1;
+        }
+
+        /* Time indicator */
+        .time-indicator {
+            font-size: 0.75rem;
+            color: var(--date-color);
+            min-width: 70px;
+            text-align: right;
+            display: none; /* Hide by default */
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 60px;
+            font-size: 0.85rem;
+            color: var(--date-color);
+            text-align: center;
+        }
+
+        /* Expanded Player Styles */
+        .expanded-player {
+            display: none;
+            padding: 0 20px 15px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .file-item.expanded .expanded-player {
+            display: block;
+        }
+
+        .progress-container {
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: var(--slider-bg);
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        .progress-filled {
+            position: absolute;
+            height: 100%;
+            background-color: var(--slider-fill);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .progress-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--date-color);
+        }
+
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .control-btn {
+            background-color: var(--button-bg);
+            border: none; /* Removed borders */
+            color: var(--accent-color);
+            border-radius: 5px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background-color: var(--button-hover);
+        }
+
+        .play-pause-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            padding: 0;
+        }
+
+        /* Theme Toggle Styles */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .theme-toggle-label {
+            font-size: 0.75rem;
+            color: var(--date-color);
+        }
+
+        .theme-toggle-slider {
+            position: relative;
+            width: 38px;
+            height: 14px;
+            background-color: var(--toggle-bg);
+            border-radius: 7px;
+            border: 1px solid var(--toggle-border);
+            cursor: pointer;
+        }
+
+        .theme-toggle-knob {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: var(--toggle-knob);
+            border-radius: 50%;
+            left: 0;
+            top: -4px;
+            transition: left 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .theme-toggle-knob {
+            left: 18px;
+        }
+        
+        /* Volume Control */
+        .volume-control {
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+            max-width: 650px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: var(--secondary-color);
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+            box-sizing: border-box;
+        }
+        
+        .volume-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--date-color);
+        }
+        
+        .volume-value {
+            font-family: 'Space Grotesk', monospace;
+        }
+        
+        .volume-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background-color: var(--slider-bg);
+            outline: none;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+        }
+        
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .volume-slider::-ms-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+        }
+        
+        /* File Item Volume Control - alternative per-item volume control */
+        .item-volume-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
             margin-top: 10px;
-            padding: 6px 16px;
         }
-   
-        #waveformCanvas {
-            height: 50px; /* Slightly smaller height on mobile */
+        
+        .item-volume-slider {
+            -webkit-appearance: none;
+            flex-grow: 1;
+            margin: 0 10px;
+            height: 4px;
+            background-color: var(--slider-bg);
+            outline: none;
+            border-radius: 2px;
         }
-    }
+        
+        .item-volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+        }
+        
+        .item-volume-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--slider-fill);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .volume-icon {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            width: 20px;
+            text-align: center;
+        }
 
-    /* Add these styles to your styles.css file */
-
-/* Override mobile button styles to make them bigger */
-@media (max-width: 600px) {
-    .filter-toggle, .reverb-toggle {
-      width: 70px !important; /* Make slightly wider */
-      height: 32px !important; /* Make slightly taller */
-      font-size: 12px !important; /* Increase font size */
-      border-radius: 8px !important; /* Match desktop corner radius */
-      padding: 0 !important;
-      margin-top: 15px !important;
-    }
-    
-    /* Ensure container is large enough */
-    .filter-container, .reverb-container {
-      width: 90px !important;
-      height: 110px !important;
-    }
-    
-    /* Fix for Safari and other browsers that might have issues */
-    .filter-toggle, .reverb-toggle {
-      -webkit-appearance: none !important;
-      -moz-appearance: none !important;
-      appearance: none !important;
-    }
-    
-    /* Ensure the effect controls have enough space */
-    .effect-controls {
-      gap: 15px !important;
-      justify-content: center !important;
-      width: 100% !important;
-    }
-  }
-
-  /* Mobile-specific overrides if still needed */
-@media (max-width: 600px) {
-    /* Ensure the effect controls have enough space */
-    .effect-controls {
-        gap: 15px !important;
-        justify-content: center !important;
-        width: 100% !important;
-    }
-}
-
-/* ==================
-   AUDIO CABLE STYLE
-   ================== */
-
-   .filter-container::after,
-   .reverb-container::after {
-       content: '';
-       position: absolute;
-       width: 1px;
-       background-color: var(--cable-color);
-       opacity: 70%;
-   
-       /* Positioning */
-       left: 52%;
-       transform: translateX(-50%);
-       top: 66px; /* Keep overlap */
-       height: 28px; /* Keep overlap */
-   
-       z-index: -1; /* UPDATED: Place it behind other elements in the container */
-       border-radius: 1px;
-   }
+        /* Media queries for mobile */
+        @media (max-width: 600px) {
+            .player-controls {
+                gap: 10px;
+            }
+            
+            .control-btn {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+            
+            .theme-toggle {
+                position: static;
+                justify-content: flex-end;
+                margin-bottom: 20px;
+            }
+        }
