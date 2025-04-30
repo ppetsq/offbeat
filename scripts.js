@@ -12,8 +12,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const themeToggle = document.querySelector(".theme-toggle-slider");
     const waveformCanvas = document.getElementById('waveformCanvas'); // Get canvas element
 
-    checkNativeAppSupport();
-
     // --- State Variables ---
     let filterActive = false;
     let reverbActive = false;
@@ -21,6 +19,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let currentLowcutFreq = 200;   // Default reverb lowcut frequency (Hz)
     let isAudioContextInitialized = false;
     let visualizerAnimationId = null; // To control the animation loop
+    let silentAudio = null; // For mobile audio keeping
 
     // --- Constants ---
     const REVERB_LOWCUT_MIN = 80;  // Minimum lowcut frequency (Hz)
@@ -42,6 +41,88 @@ document.addEventListener("DOMContentLoaded", function() {
     let canvas, canvasCtx, dataArray, bufferLength;
 
     // =====================================
+    // Mobile Audio Support
+    // =====================================
+    
+    // Set up mobile-friendly audio attributes
+    function setupMobileAudio() {
+        // Configure audio element for mobile
+        audioPlayer.setAttribute('playsinline', '');
+        audioPlayer.setAttribute('webkit-playsinline', '');
+        audioPlayer.setAttribute('preload', 'metadata');
+        
+        // Create silent audio to keep audio context alive
+        silentAudio = document.createElement('audio');
+        silentAudio.setAttribute('loop', '');
+        silentAudio.setAttribute('playsinline', '');
+        silentAudio.volume = 0.001; // Nearly silent
+        silentAudio.src = 'data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAABhTEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQAB9AAAAnGMHkkIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQxAADgnABGiAAQBCqgCRMAAgEAH///////////////7+n/9FTuQsQH//////2NG0jWUGlio5gLQTOtIoeR2WX////X4s9Atb/JRVCbBUpeRUq//////////////////9RUi0f2jn/+xDECgPCjAEQAABN4AAANIAAAAQVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==';
+        document.body.appendChild(silentAudio);
+        
+        // Handle visibility changes to keep audio playing
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden' && !audioPlayer.paused) {
+                // Page is hidden but audio should still play
+                try {
+                    // Try to keep silent audio playing to prevent suspension
+                    silentAudio.play().catch(e => {});
+                } catch (e) {}
+            } else if (document.visibilityState === 'visible' && currentPlayingItem && audioPlayer.paused) {
+                // Page became visible again but audio got paused - try to resume
+                audioPlayer.play().catch(e => {});
+            }
+        });
+    }
+    
+    // Set up Media Session API for system media controls
+    function setupMediaSession() {
+        if (!('mediaSession' in navigator)) return;
+        
+        // Set action handlers for system controls
+        navigator.mediaSession.setActionHandler('play', function() {
+            if (currentPlayingItem) {
+                audioPlayer.play().catch(e => {});
+                updateIcon(currentPlayingItem);
+            }
+        });
+        
+        navigator.mediaSession.setActionHandler('pause', function() {
+            if (audioPlayer) {
+                audioPlayer.pause();
+                if (currentPlayingItem) updateIcon(currentPlayingItem);
+            }
+        });
+        
+        navigator.mediaSession.setActionHandler('seekbackward', function() {
+            if (audioPlayer && !isNaN(audioPlayer.duration)) {
+                audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
+                updateTime();
+            }
+        });
+        
+        navigator.mediaSession.setActionHandler('seekforward', function() {
+            if (audioPlayer && !isNaN(audioPlayer.duration)) {
+                audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
+                updateTime();
+            }
+        });
+    }
+    
+    // Update media session metadata
+    function updateMediaSessionMetadata(trackName, episodeDate) {
+        if (!('mediaSession' in navigator)) return;
+        
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: trackName || 'Offbeat Radio',
+            artist: episodeDate || 'Live radio show',
+            album: 'Offbeat Archive',
+            artwork: [
+                { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '512x512', type: 'image/jpeg' }
+            ]
+        });
+    }
+    
+    // =====================================
     // Initialize Canvas Context
     // =====================================
     if (waveformCanvas) {
@@ -56,228 +137,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     } else {
         console.warn("Waveform canvas element ('waveformCanvas') not found!");
-    }
-
-    // =====================================
-    // Mobile Background Playback Setup
-    // =====================================
-    function enableBackgroundPlayback() {
-        // Set critical audio attributes
-        audioPlayer.setAttribute('playsinline', '');
-        audioPlayer.setAttribute('webkit-playsinline', '');
-        audioPlayer.setAttribute('x-webkit-airplay', 'allow');
-        audioPlayer.setAttribute('data-keepalive', 'true');
-        audioPlayer.setAttribute('controlsList', 'nodownload');
-        
-        // Create a special "silent" audio element to keep the audio context alive
-        const silentAudio = document.createElement('audio');
-        silentAudio.setAttribute('loop', '');
-        silentAudio.setAttribute('playsinline', '');
-        silentAudio.setAttribute('webkit-playsinline', '');
-        silentAudio.volume = 0.0001; // Nearly silent
-        silentAudio.src = 'data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAABhTEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQAB9AAAAnGMHkkIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQxAADgnABGiAAQBCqgCRMAAgEAH///////////////7+n/9FTuQsQH//////2NG0jWUGlio5gLQTOtIoeR2WX////X4s9Atb/JRVCbBUpeRUq//////////////////9RUi0f2jn/+xDECgPCjAEQAABN4AAANIAAAAQVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==';
-        document.body.appendChild(silentAudio);
-    
-        // Special iOS workarounds
-        let pageWasHidden = false;
-        
-        // 1. Handle visibility changes
-        document.addEventListener('visibilitychange', function() {
-            console.log("Visibility changed: ", document.visibilityState);
-            
-            if (document.visibilityState === 'hidden') {
-                pageWasHidden = true;
-                
-                // Only do this for actively playing audio
-                if (!audioPlayer.paused) {
-                    console.log("Page hidden but audio playing - attempting to keep alive");
-                    
-                    // Try playing the silent audio to keep audio context alive
-                    silentAudio.play().catch(e => console.log("Silent audio play failed:", e));
-                    
-                    // iOS Safari specific: try to keep the main player alive
-                    navigator.mediaSession?.setActionHandler('pause', () => {
-                        console.log("Preventing system pause while hidden");
-                        return false; // Attempt to block pause
-                    });
-                }
-            } else if (document.visibilityState === 'visible' && pageWasHidden) {
-                pageWasHidden = false;
-                
-                // If audio was supposed to be playing but got paused
-                if (currentPlayingItem && audioPlayer.paused) {
-                    console.log("Restarting audio after page became visible again");
-                    audioPlayer.play().catch(e => console.log("Auto-resume failed:", e));
-                }
-                
-                // Reset media session handlers
-                setupMediaSession();
-            }
-        });
-        
-        // 2. Handle page unload - attempt to keep audio alive
-        window.addEventListener('beforeunload', function(e) {
-            if (!audioPlayer.paused) {
-                // Request to keep running in background (may not work in all browsers)
-                navigator.mediaSession?.setActionHandler('stop', null);
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        });
-        
-        // 3. Handle iOS audio interruptions (calls, etc)
-        audioPlayer.addEventListener('pause', function() {
-            // This detects system-initiated pauses
-            if (document.visibilityState === 'hidden' && currentPlayingItem) {
-                console.log("System pause detected while hidden - attempting to resume");
-                // Attempt to restart playback after a short delay
-                setTimeout(() => {
-                    if (document.visibilityState === 'hidden' && currentPlayingItem) {
-                        audioPlayer.play().catch(e => console.log("Auto-resume after interruption failed:", e));
-                    }
-                }, 500);
-            }
-        });
-        
-        // 4. iOS wake lock attempt (not standard, might not work)
-        try {
-            if ('wakeLock' in navigator) {
-                // Request a wake lock when playback starts
-                audioPlayer.addEventListener('play', async () => {
-                    try {
-                        const wakeLock = await navigator.wakeLock.request('screen');
-                        console.log('Wake lock activated');
-                        
-                        wakeLock.addEventListener('release', () => {
-                            console.log('Wake lock released');
-                        });
-                        
-                        // Store reference to release later
-                        audioPlayer.wakeLock = wakeLock;
-                    } catch (err) {
-                        console.log('Wake lock request failed:', err);
-                    }
-                    try {
-                        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-                            navigator.mediaSession.setPositionState({
-                                duration: audioPlayer.duration || 0,
-                                playbackRate: audioPlayer.playbackRate || 1,
-                                position: audioPlayer.currentTime || 0
-                            });
-                        }
-                    } catch (e) {
-                        console.log("Unable to update media session position:", e);
-                    }
-                });
-                
-                // Release wake lock when playback ends
-                audioPlayer.addEventListener('ended', () => {
-                    if (audioPlayer.wakeLock) {
-                        audioPlayer.wakeLock.release();
-                        audioPlayer.wakeLock = null;
-                    }
-                });
-                
-                audioPlayer.addEventListener('pause', () => {
-                    // Only release if intentionally paused, not on background
-                    if (document.visibilityState === 'visible' && audioPlayer.wakeLock) {
-                        audioPlayer.wakeLock.release();
-                        audioPlayer.wakeLock = null;
-                    }
-                });
-            }
-        } catch (e) {
-            console.log("Wake lock API not supported:", e);
-        }
-    }
-    
-
-    // Set up Media Session API for system media controls
-    function setupMediaSession() {
-        if ('mediaSession' in navigator) {
-            console.log("Setting up media session handlers");
-            
-            // Play action
-            navigator.mediaSession.setActionHandler('play', function() {
-                console.log("Media session play triggered");
-                if (currentPlayingItem) {
-                    audioPlayer.play().catch(error => console.error("Error playing audio:", error));
-                    updateIcon(currentPlayingItem);
-                }
-            });
-            
-            // Pause action
-            navigator.mediaSession.setActionHandler('pause', function() {
-                console.log("Media session pause triggered");
-                audioPlayer.pause();
-                if (currentPlayingItem) {
-                    updateIcon(currentPlayingItem);
-                }
-            });
-            
-            // Seek backward action
-            navigator.mediaSession.setActionHandler('seekbackward', function(details) {
-                console.log("Media session seek backward triggered");
-                const skipTime = details.seekOffset || SKIP_TIME;
-                if (audioPlayer && !isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - skipTime);
-                    updateTime();
-                }
-            });
-            
-            // Seek forward action
-            navigator.mediaSession.setActionHandler('seekforward', function(details) {
-                console.log("Media session seek forward triggered");
-                const skipTime = details.seekOffset || SKIP_TIME;
-                if (audioPlayer && !isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + skipTime);
-                    updateTime();
-                }
-            });
-            
-            // Set seeking step size if supported
-            if ('setPositionState' in navigator.mediaSession) {
-                navigator.mediaSession.setPositionState({
-                    duration: audioPlayer.duration || 0,
-                    playbackRate: audioPlayer.playbackRate || 1,
-                    position: audioPlayer.currentTime || 0
-                });
-            }
-            
-            // Add stop handler
-            try {
-                navigator.mediaSession.setActionHandler('stop', function() {
-                    console.log("Media session stop triggered");
-                    audioPlayer.pause();
-                    audioPlayer.currentTime = 0;
-                    if (currentPlayingItem) {
-                        currentPlayingItem.classList.remove("expanded");
-                        updateIcon(currentPlayingItem);
-                        const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
-                        if (timeIndicator) timeIndicator.style.display = "none";
-                        const progressFilled = currentPlayingItem.querySelector(".progress-filled");
-                        if (progressFilled) progressFilled.style.width = "0%";
-                        currentPlayingItem = null;
-                    }
-                });
-            } catch (error) {
-                console.log("Stop action not supported:", error);
-            }
-        }
-    }
-
-    // Update media session metadata when track changes
-    function updateMediaSessionMetadata(trackName, episodeDate) {
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: trackName || 'Offbeat Radio',
-                artist: episodeDate || 'Live radio show',
-                album: 'Offbeat Archive',
-                artwork: [
-                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '512x512', type: 'image/jpeg' }
-                ]
-            });
-        }
     }
 
     // =====================================
@@ -346,17 +205,16 @@ document.addEventListener("DOMContentLoaded", function() {
             applyVolume();
 
             isAudioContextInitialized = true;
-            console.log("Audio Context Initialized with Send-Based Reverb, Lowcut, Filter, and Analyser");
+            console.log("Audio Context Initialized");
         } catch (e) {
-            console.error("Web Audio API is not supported or could not be initialized.", e);
-            alert("Sorry, your browser doesn't support the necessary Web Audio features for this site.");
+            console.error("Web Audio API error:", e);
         }
     }
 
     // Function to resume AudioContext if suspended (required by browsers)
     function resumeAudioContext() {
         if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().catch(e => console.error("Error resuming AudioContext:", e));
+            audioContext.resume().catch(e => {});
         }
     }
 
@@ -396,7 +254,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         convolver.buffer = impulse;
-        console.log("Enhanced club/DJ-style reverb impulse created.");
+        console.log("Reverb impulse created");
     }
 
     // =====================================
@@ -538,6 +396,11 @@ document.addEventListener("DOMContentLoaded", function() {
             if (!isAudioContextInitialized) return; // Stop if initialization failed
         }
         resumeAudioContext(); // Resume context before playing
+        
+        // Try to play the silent audio to maintain active audio state
+        if (silentAudio && silentAudio.paused) {
+            silentAudio.play().catch(e => {});
+        }
 
         const link = item.querySelector(".episode-link");
         const src = link.getAttribute("href");
@@ -600,14 +463,16 @@ document.addEventListener("DOMContentLoaded", function() {
             const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
             progressFilled.style.width = `${progressPercentage}%`;
         }
-
+        
         // Update position state for Media Session API
         if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-            navigator.mediaSession.setPositionState({
-                duration: audioPlayer.duration || 0,
-                playbackRate: audioPlayer.playbackRate,
-                position: audioPlayer.currentTime || 0
-            });
+            try {
+                navigator.mediaSession.setPositionState({
+                    duration: audioPlayer.duration || 0,
+                    playbackRate: audioPlayer.playbackRate || 1,
+                    position: audioPlayer.currentTime || 0
+                });
+            } catch(e) {}
         }
     }
 
@@ -735,7 +600,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const now = audioContext.currentTime;
         const transitionTime = 0.05; // 50ms transition
         reverbSendNode.gain.linearRampToValueAtTime(sendAmount, now + transitionTime);
-        // console.log(`Reverb Send: ${sendAmount.toFixed(3)} (Active: ${reverbActive})`);
     }
 
     function resetReverbKnobToDefault() {
@@ -769,7 +633,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const now = audioContext.currentTime;
         reverbLowcutNode.frequency.linearRampToValueAtTime(currentLowcutFreq, now + 0.05);
-        console.log(`Reverb Lowcut: ${Math.round(currentLowcutFreq)} Hz`);
     }
 
     // =====================================
@@ -852,11 +715,14 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-
     // =====================================
     // Initialize Controls and UI
     // =====================================
     function initializeControls() {
+        // Initialize mobile audio support 
+        setupMobileAudio();
+        setupMediaSession();
+        
         // Initialize Filter
         filterSlider.value = 50;
         updateFilterKnobVisual(filterSlider.value);
@@ -870,13 +736,6 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbToggleBtn.classList.remove('active'); // Start inactive
             reverbActive = false;
         }
-
-        // Enable background playback for mobile
-        enableBackgroundPlayback();
-        setupMediaSession();
-
-        // Apply initial volume (will be done in initializeAudioContext if called later)
-        // applyVolume();
 
         // Set up 'feat' tags visibility
         document.querySelectorAll('.file-featured').forEach(item => {
@@ -905,7 +764,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const rewindBtn = item.querySelector(".rewind-btn");
         const forwardBtn = item.querySelector(".forward-btn");
         const playPauseBtn = item.querySelector(".play-pause-btn");
-
+        
         // Main click on item link
         if (episodeLink) {
             episodeLink.addEventListener("click", function(e) {
@@ -965,44 +824,39 @@ document.addEventListener("DOMContentLoaded", function() {
     audioPlayer.addEventListener("play", function() {
         resumeAudioContext(); // Ensure context is running
         if (currentPlayingItem) updateIcon(currentPlayingItem); // Update icon to 'pause'
+        
         // Start visualizer ONLY if context is initialized and canvas exists
         if (isAudioContextInitialized && canvasCtx && !visualizerAnimationId) {
-             // Ensure canvas size is correct before starting
+            // Ensure canvas size is correct before starting
             if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
-                 canvas.width = canvas.offsetWidth;
-                 canvas.height = canvas.offsetHeight;
-             }
-            console.log("Starting visualizer...");
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
             drawVisualizer(); // Start the loop
         }
     });
 
     audioPlayer.addEventListener("pause", function() {
         if (currentPlayingItem) updateIcon(currentPlayingItem); // Update icon to 'play'
-        // Stop the visualizer loop by letting the drawVisualizer function return early
-        // The check `if (audioPlayer.paused)` inside drawVisualizer handles this.
-        // We set visualizerAnimationId to null inside drawVisualizer when it stops.
-        console.log("Pausing visualizer (will stop on next frame).");
     });
 
     audioPlayer.addEventListener("ended", function() {
         // Stop visualizer explicitly and clear canvas
-         if (visualizerAnimationId && cancelAnimationFrame) {
-             cancelAnimationFrame(visualizerAnimationId);
-         }
-         visualizerAnimationId = null;
-         if(canvasCtx && canvas) canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-         console.log("Stopping visualizer (ended).");
+        if (visualizerAnimationId && cancelAnimationFrame) {
+            cancelAnimationFrame(visualizerAnimationId);
+        }
+        visualizerAnimationId = null;
+        if(canvasCtx && canvas) canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-         // Reset the specific item that just finished
-         if (currentPlayingItem) {
+        // Reset the specific item that just finished
+        if (currentPlayingItem) {
             currentPlayingItem.classList.remove("expanded");
             updateIcon(currentPlayingItem); // Set icon back to play
             const timeIndicator = currentPlayingItem.querySelector(".time-indicator");
             if (timeIndicator) timeIndicator.style.display = "none";
             const progressFilled = currentPlayingItem.querySelector(".progress-filled");
             if (progressFilled) progressFilled.style.width = "0%";
-         }
+        }
         currentPlayingItem = null; // Clear the currently playing item state
     });
 
@@ -1101,34 +955,16 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
+    // Force audio context resume on first interaction
     document.addEventListener('click', function() {
-        // Try to resume AudioContext on any user interaction
         if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().catch(e => console.error("Error resuming AudioContext:", e));
+            audioContext.resume().catch(e => {});
         }
         
-        // iOS requires a user interaction to start audio playback the first time
+        // iOS requires a user interaction to start audio the first time
         if (silentAudio && silentAudio.paused) {
-            silentAudio.play().catch(e => console.log("Silent audio play failed:", e));
+            silentAudio.play().catch(e => {});
         }
-    }, {once: true});
-
-    function checkNativeAppSupport() {
-        // Check if we're running in a PWA context
-        const isInPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                        window.navigator.standalone || 
-                        document.referrer.includes('android-app://');
-        
-        if (!isInPWA) {
-            console.log("Not running as PWA - background audio may be limited");
-        }
-        
-        // Check for iOS
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-            console.log("iOS detected - applying specific iOS audio workarounds");
-            document.documentElement.classList.add('ios-device');
-        }
-    }
+    }, { once: true });
 
 }); // End DOMContentLoaded
