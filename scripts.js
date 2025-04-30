@@ -254,47 +254,43 @@ document.addEventListener("DOMContentLoaded", function() {
     // Waveform Visualizer Drawing Function
     // =====================================
     function drawVisualizer() {
-        // Add a zoom factor (e.g., 0.6 means the waveform uses 60% of the vertical space)
-        const zoomFactor = 1;
-
         // Ensure canvas context is available
         if (!canvasCtx || !canvas) {
              visualizerAnimationId = null;
              return;
         }
-
-        // --- Drawing Logic ---
+    
         // Get computed style for colors ONCE per frame for efficiency
         const computedStyle = getComputedStyle(document.documentElement);
         const strokeColor = computedStyle.getPropertyValue('--accent-color').trim();
         const idleColor = computedStyle.getPropertyValue('--slider-bg').trim(); // Color for the flat line
-
+    
         // Request the next frame IF playing and initialized
         if (!audioPlayer.paused && isAudioContextInitialized && analyserNode) {
             visualizerAnimationId = requestAnimationFrame(drawVisualizer);
-
+    
             // Get current waveform data
             analyserNode.getByteTimeDomainData(dataArray);
-
+    
             // Clear the canvas for the new frame
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
             // Set drawing style for active waveform
             canvasCtx.lineWidth = 2;
             canvasCtx.strokeStyle = strokeColor || '#8B9D83'; // Use fallback color
-
+    
             // Begin drawing the path
             canvasCtx.beginPath();
             const sliceWidth = canvas.width * 1.0 / bufferLength; // Width of each data point segment
             let x = 0; // Current horizontal position
             const centerY = canvas.height / 2;
-
+            const maxAmplitude = canvas.height / 2;
+    
             // Loop through data points to draw the line
             for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0; // Normalize data (0-255 -> 0.0-2.0)
-                // Calculate deviation from center, apply zoom factor, then add back to center
-                const y = centerY + (v * centerY - centerY) * zoomFactor;
-
+                const v = dataArray[i] / 128.0 - 1; // Normalize data to -1 to 1
+                const y = centerY + v * maxAmplitude;
+    
                 if (i === 0) {
                     canvasCtx.moveTo(x, y); // Start the line
                 } else {
@@ -302,22 +298,22 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
                 x += sliceWidth; // Move to the next horizontal position
             }
-
+    
             // Finish the line near the middle right edge
             canvasCtx.lineTo(canvas.width, centerY);
             canvasCtx.stroke(); // Render the line on the canvas
-
+    
         } else {
              // --- Draw Idle State (Flat Line) ---
              visualizerAnimationId = null; // Ensure animation stops
-
+    
              // Clear the canvas
              canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
              // Set style for idle line
              canvasCtx.lineWidth = 2; // Can be same or different width
              canvasCtx.strokeStyle = idleColor || 'rgba(139, 157, 131, 0.2)'; // Use slider background color
-
+    
              // Draw horizontal line in the middle
              canvasCtx.beginPath();
              canvasCtx.moveTo(0, canvas.height / 2);

@@ -738,7 +738,7 @@ footer {
         margin-top: 15px; /* Add some space above */
         background-color: var(--secondary-color); /* Match background */
         border-radius: var(--border-radius);
-        padding: 14px 16px;
+        padding: 14px 0px;
         box-sizing: border-box;
     }
    
@@ -747,6 +747,7 @@ footer {
         width: 100%;  /* Make canvas fill container width */
         height: 40px; /* Set a fixed height */
         border-radius: 6px; /* Slightly rounded corners */
+        object-fit: fill;
     }
    
     /* Adjust master controls layout if needed */
@@ -759,7 +760,7 @@ footer {
     @media (max-width: 600px) {
         .visualizer-container {
             margin-top: 10px;
-            padding: 6px 16px;
+            padding: 6px 0px;
         }
    
         #waveformCanvas {
