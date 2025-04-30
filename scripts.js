@@ -57,6 +57,81 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // =====================================
+    // Mobile Background Playback Setup
+    // =====================================
+    function enableBackgroundPlayback() {
+        // Set audio element attributes for background playback
+        audioPlayer.setAttribute('playsinline', ''); // iOS playback within page
+        audioPlayer.setAttribute('webkit-playsinline', ''); // Older iOS versions
+        audioPlayer.setAttribute('preload', 'metadata'); // Better than 'none' for playback
+
+        // Prevent browser from pausing audio when inactive
+        document.addEventListener('visibilitychange', function() {
+            // Keep playing even when the page is hidden
+            if (document.visibilityState === 'hidden' && !audioPlayer.paused) {
+                // Force continue playing in background
+                try {
+                    const silentPromise = audioPlayer.play();
+                    if (silentPromise !== undefined) {
+                        silentPromise.catch(e => {
+                            console.log('Background play prevented by browser', e);
+                        });
+                    }
+                } catch (e) {
+                    console.log('Error keeping audio playing in background', e);
+                }
+            }
+        });
+    }
+
+    // Set up Media Session API for system media controls
+    function setupMediaSession() {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', function() {
+                if (currentPlayingItem) {
+                    audioPlayer.play().catch(error => console.error("Error playing audio:", error));
+                    updateIcon(currentPlayingItem);
+                }
+            });
+            
+            navigator.mediaSession.setActionHandler('pause', function() {
+                audioPlayer.pause();
+                if (currentPlayingItem) {
+                    updateIcon(currentPlayingItem);
+                }
+            });
+            
+            navigator.mediaSession.setActionHandler('seekbackward', function() {
+                if (audioPlayer && !isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
+                    updateTime();
+                }
+            });
+            
+            navigator.mediaSession.setActionHandler('seekforward', function() {
+                if (audioPlayer && !isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
+                    updateTime();
+                }
+            });
+        }
+    }
+
+    // Update media session metadata when track changes
+    function updateMediaSessionMetadata(trackName, episodeDate) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: trackName || 'Offbeat Radio',
+                artist: episodeDate || 'Live radio show',
+                album: 'Offbeat Archive',
+                artwork: [
+                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '512x512', type: 'image/jpeg' }
+                ]
+            });
+        }
+    }
+
+    // =====================================
     // Web Audio API Initialization
     // =====================================
     function initializeAudioContext() {
@@ -175,7 +250,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log("Enhanced club/DJ-style reverb impulse created.");
     }
 
- // =====================================
+    // =====================================
     // Waveform Visualizer Drawing Function
     // =====================================
     function drawVisualizer() {
@@ -250,7 +325,6 @@ document.addEventListener("DOMContentLoaded", function() {
              canvasCtx.stroke();
         }
     }
-
 
     // =====================================
     // Theme Toggle
@@ -333,6 +407,11 @@ document.addEventListener("DOMContentLoaded", function() {
             audioPlayer.play().catch(error => console.error("Error playing audio:", error));
             currentPlayingItem = item;
 
+            // Update media session metadata for lock screen controls
+            const trackName = item.querySelector('.file-number')?.textContent || '';
+            const episodeDate = item.querySelector('.file-date')?.textContent || '';
+            updateMediaSessionMetadata(trackName, episodeDate);
+
             item.classList.add("expanded");
             updateIcon(item); // Set initial icon state
             const timeIndicator = item.querySelector(".time-indicator");
@@ -371,6 +450,15 @@ document.addEventListener("DOMContentLoaded", function() {
         if (progressFilled) {
             const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
             progressFilled.style.width = `${progressPercentage}%`;
+        }
+
+        // Update position state for Media Session API
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            navigator.mediaSession.setPositionState({
+                duration: audioPlayer.duration || 0,
+                playbackRate: audioPlayer.playbackRate,
+                position: audioPlayer.currentTime || 0
+            });
         }
     }
 
@@ -633,6 +721,10 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbToggleBtn.classList.remove('active'); // Start inactive
             reverbActive = false;
         }
+
+        // Enable background playback for mobile
+        enableBackgroundPlayback();
+        setupMediaSession();
 
         // Apply initial volume (will be done in initializeAudioContext if called later)
         // applyVolume();
