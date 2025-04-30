@@ -23,6 +23,8 @@
     --toggle-bg: rgba(139, 157, 131, 0.2);
     --toggle-border: rgba(139, 157, 131, 0.3);
     --center-marker: rgba(139, 157, 131, 0.5);
+    --cable-color: #444444; /* Dark grey for dark theme */
+    --center-marker: rgba(139, 157, 131, 0.5);
 }
 
 /* Light Theme */
@@ -43,6 +45,8 @@
     --toggle-knob: #5A7350;
     --toggle-bg: rgba(90, 115, 80, 0.2);
     --toggle-border: rgba(90, 115, 80, 0.3);
+    --center-marker: rgba(90, 115, 80, 0.5);
+    --cable-color: #aaaaaa; /* Lighter grey for light theme */
     --center-marker: rgba(90, 115, 80, 0.5);
 }
 
@@ -159,6 +163,7 @@ p.subtitle {
     flex-shrink: 0;
     background-color: transparent;
     padding: 0;
+    position: relative; /* Add this */
     gap: 10px;
 }
 
@@ -174,6 +179,7 @@ p.subtitle {
     margin: 0;
     touch-action: none;
     aspect-ratio: 1 / 1;
+    z-index: 1; /* ADDED: Ensure knob is above cable */
 }
 
 .knob-visual {
@@ -239,6 +245,7 @@ p.subtitle {
     justify-content: center;
     letter-spacing: 0.5px;
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
+    z-index: 1; /* ADDED: Ensure knob is above cable */
     
     /* Ensure no browser default styles */
     -webkit-appearance: none;
@@ -803,3 +810,24 @@ footer {
         width: 100% !important;
     }
 }
+
+/* ==================
+   AUDIO CABLE STYLE
+   ================== */
+
+   .filter-container::after,
+   .reverb-container::after {
+       content: '';
+       position: absolute;
+       width: 1px;
+       background-color: var(--cable-color);
+   
+       /* Positioning */
+       left: 52%;
+       transform: translateX(-50%);
+       top: 68px; /* Keep overlap */
+       height: 28px; /* Keep overlap */
+   
+       z-index: -1; /* UPDATED: Place it behind other elements in the container */
+       border-radius: 1px;
+   }
