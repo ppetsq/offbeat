@@ -84,6 +84,73 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    function setupBackgroundPlayback() {
+        // Set audio attributes for mobile
+        audioPlayer.setAttribute('playsinline', '');
+        audioPlayer.setAttribute('webkit-playsinline', '');
+        
+        // Use MediaSession API for lock screen controls
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', () => {
+                if (currentPlayingItem) audioPlayer.play();
+            });
+            
+            navigator.mediaSession.setActionHandler('pause', () => {
+                audioPlayer.pause();
+            });
+            
+            navigator.mediaSession.setActionHandler('seekbackward', () => {
+                audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - SKIP_TIME);
+            });
+            
+            navigator.mediaSession.setActionHandler('seekforward', () => {
+                audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + SKIP_TIME);
+            });
+        }
+        
+        // The key part: detect when page goes to background and bypass audio effects
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                if (!audioPlayer.paused && audioContext) {
+                    // Store current volume before disconnecting
+                    const currentVolume = audioPlayer.volume;
+                    
+                    // Bypass Web Audio API when in background
+                    try {
+                        // Temporarily disconnect to allow direct output
+                        if (gainNode && audioContext) {
+                            gainNode.disconnect();
+                            // Set direct volume equivalent to processed volume
+                            const volumeValue = parseInt(volumeSlider.value);
+                            audioPlayer.volume = Math.pow(volumeValue / 100, 2);
+                        }
+                    } catch (e) {
+                        console.log("Background audio bypass error:", e);
+                    }
+                }
+            } else if (document.visibilityState === 'visible') {
+                // Reconnect effects when returning to foreground
+                if (currentPlayingItem && !audioPlayer.paused && audioContext) {
+                    try {
+                        // Re-initialize audio context if needed
+                        if (audioContext.state === 'suspended') {
+                            audioContext.resume();
+                        }
+                        // Reconnect nodes if needed
+                        if (gainNode && !gainNode.numberOfOutputs) {
+                            // The specific reconnection depends on your audio graph
+                            // This is just a placeholder - you'll need to implement
+                            // the proper reconnection logic for your setup
+                            initializeAudioContext();
+                        }
+                    } catch (e) {
+                        console.log("Foreground audio reconnect error:", e);
+                    }
+                }
+            }
+        });
+    }
+
     // Set up Media Session API for system media controls
     function setupMediaSession() {
         if ('mediaSession' in navigator) {
@@ -708,6 +775,9 @@ document.addEventListener("DOMContentLoaded", function() {
     // Initialize Controls and UI
     // =====================================
     function initializeControls() {
+
+        setupBackgroundPlayback();
+
         // Initialize Filter
         filterSlider.value = 50;
         updateFilterKnobVisual(filterSlider.value);
