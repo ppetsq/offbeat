@@ -16,30 +16,72 @@
 </head>
 <body>
     <div class="container">
-        <div class="theme-toggle">
-            <span class="theme-toggle-label">mode</span>
-            <div class="theme-toggle-slider">
-                <div class="theme-toggle-knob"></div>
+        <!-- Hero Image Section with Fade Overlay -->
+        <div class="hero-section">
+            <img src="https://vault.petsq.net/ob25.jpg" alt="Offbeat 2025" class="hero-image">
+            <div class="hero-fade"></div>
+            <!-- Waveform Visualizer on Hero -->
+            <div class="hero-waveform">
+                <canvas id="waveformCanvas"></canvas>
             </div>
         </div>
 
-        <header>
-            <div class="header-content">
-                <a href="https://petsq.net" target="_blank" rel="noopener noreferrer" class="logo">
-                    <img src="https://vault.petsq.net/offbeat-promo.jpg" alt="Offbeat">
-                </a>
+        <!-- Main Player Unit -->
+        <div class="main-player" id="mainPlayer">
+            <!-- Left Side: Playback -->
+            <div class="player-left">
+                <!-- Track Info Display -->
+                <div class="player-info">
+                    <div class="track-title" id="trackTitle">OFFBEAT #23</div>
+                    <div class="track-meta">
+                        <span class="track-date" id="trackDate">22.10.2025</span>
+                        <span class="track-guest" id="trackGuest"></span>
+                    </div>
+                </div>
 
+                <!-- Playback Controls Row -->
+                <div class="playback-controls">
+                    <button class="skip-btn" id="rewindBtn" aria-label="Rewind 30 seconds">-30sec</button>
+                    <button class="main-play-pause" id="mainPlayPause" aria-label="Play/Pause">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                    <button class="skip-btn" id="forwardBtn" aria-label="Forward 30 seconds">+30sec</button>
+                </div>
 
-                <div class="effect-controls">
-                    <div class="reverb-container">
+                <!-- Progress Bar -->
+                <div class="main-progress-container">
+                    <div class="main-progress-bar" id="mainProgressBar">
+                        <div class="main-progress-filled" id="mainProgressFilled"></div>
+                    </div>
+                    <div class="main-time-display">
+                        <span id="currentTime">00:00</span>
+                        <span id="duration">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Controls -->
+            <div class="player-right">
+                <!-- Controls Toggle -->
+                <div class="dj-controls-header">
+                    <button class="dj-toggle-btn" id="djToggleBtn">
+                        <span>controls</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                </div>
+
+                <!-- Effects Section (collapsible) -->
+                <div class="effects-section collapsed" id="effectsSection">
+                    <div class="volume-container">
                         <div class="knob-wrapper">
-                            <input type="range" min="0" max="100" value="0" class="reverb-slider" id="masterReverb" aria-label="Reverb Knob">
+                            <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume" aria-label="Volume Knob">
                             <div class="knob-visual">
                                 <div class="knob-indicator"></div>
                             </div>
                         </div>
-                        <button class="reverb-toggle">reverb</button>
+                        <button class="volume-label">volume</button>
                     </div>
+
                     <div class="filter-container">
                         <div class="knob-wrapper">
                             <input type="range" min="0" max="100" value="50" class="filter-slider" id="masterFilter" aria-label="Filter Knob">
@@ -49,900 +91,52 @@
                         </div>
                         <button class="filter-toggle">filter</button>
                     </div>
-                </div>
-
-                 <div class="text-content">
-                    <h1>offbeat archive</h1>
-                    <p class="subtitle">live every other wednesday<br> 18:00 - 20:00 (cet) </p>
-                    <a href="https://radio.worm.org" class="radio-link" target="_blank">radio.worm.org</a>
-                </div>
-            </div>
-            </header>
-
-        <div class="master-controls">
-            <div class="volume-container">
-                <div class="volume-control">
-                     <div class="volume-label">
-                         <span>master volume</span>
-                         <span class="volume-value">100%</span>
-                     </div>
-                     <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume">
-                 </div>
-                 <div class="visualizer-container">
-                    <canvas id="waveformCanvas"></canvas>
+                    <div class="reverb-container">
+                        <div class="knob-wrapper">
+                            <input type="range" min="0" max="100" value="0" class="reverb-slider" id="masterReverb" aria-label="Reverb Knob">
+                            <div class="knob-visual">
+                                <div class="knob-indicator"></div>
+                            </div>
+                        </div>
+                        <button class="reverb-toggle">reverb</button>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <section>
-            <ul class="file-list">
 
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20251022_OFFBEAT_23.mp3" class="episode-link" data-track="OFFBEAT #23">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #23</span>
-                            </div>
-                            <span class="file-date">22.10.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-                
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20251008_OFFBEAT_22.mp3" class="episode-link" data-track="OFFBEAT #22">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #22</span>
-                            </div>
-                            <span class="file-date">08.10.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250924_OFFBEAT_21.mp3" class="episode-link" data-track="OFFBEAT #21">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #21</span>
-                            </div>
-                            <span class="file-date">24.09.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250910_OFFBEAT_20.mp3" class="episode-link" data-track="OFFBEAT #20">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #20</span>
-                            </div>
-                            <span class="file-date">10.09.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-                
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250730_OFFBEAT_19.mp3" class="episode-link" data-track="OFFBEAT #19">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #19</span>
-                            </div>
-                            <span class="file-date">30.07.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250716_OFFBEAT_18.mp3" class="episode-link" data-track="OFFBEAT #18">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #18</span>
-                            </div>
-                            <span class="file-date">16.07.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250702_OFFBEAT_17.mp3" class="episode-link" data-track="OFFBEAT #17">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #17</span>
-                            </div>
-                            <span class="file-date">02.07.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-                
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250618_OFFBEAT_16.mp3" class="episode-link" data-track="OFFBEAT #16">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #16</span>
-                            </div>
-                            <span class="file-date">18.06.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250604_OFFBEAT_15.mp3" class="episode-link" data-track="OFFBEAT #15">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #15</span>
-                            </div>
-                            <span class="file-date">04.06.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="file-item">
-                    <a href="https://vault.petsq.net/20250521_OFFBEAT_14.mp3" class="episode-link" data-track="OFFBEAT #14">
-                        <div class="file-info">
-                            <div class="file-number-container">
-                                <span class="file-number">OFFBEAT #14</span>
-                            </div>
-                            <span class="file-date">21.05.2025</span>
-                        </div>
-                        <div class="right-elements">
-                            <div class="time-indicator">00:00 / 00:00</div>
-                            <div class="file-icon">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                        </div>
-                    </a>
-                    <div class="expanded-player">
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-filled"></div>
-                            </div>
-                            <div class="progress-time">
-                                <span class="current-time">00:00</span>
-                                <span class="duration-time">00:00</span>
-                            </div>
-                        </div>
-                        <div class="player-controls">
-                            <button class="control-btn rewind-btn">
-                                -30sec
-                            </button>
-                            <button class="control-btn play-pause-btn">
-                                <i class="fa-solid fa-play"></i>
-                            </button>
-                            <button class="control-btn forward-btn">
-                                +30sec
-                            </button>
-                        </div>
-                    </div>
-                </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20250423_OFFBEAT_13.mp3" class="episode-link" data-track="OFFBEAT #13">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #13</span>
-                             </div>
-                             <span class="file-date">23.04.2025</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20250409_OFFBEAT_12.mp3" class="episode-link" data-track="OFFBEAT #12">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #12</span>
-                             </div>
-                             <span class="file-date">09.04.2025</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20250326_OFFBEAT_11.mp3" class="episode-link" data-track="OFFBEAT #11">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #11</span>
-                             </div>
-                             <span class="file-date">26.03.2025</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20250312_OFFBEAT_10.mp3" class="episode-link" data-track="OFFBEAT #10">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #10</span>
-                             </div>
-                             <span class="file-date">12.03.2025</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item file-featured">
-                     <a href="https://vault.petsq.net/20250226_OFFBEAT_9_feat_screamsoda.mp3" class="episode-link" data-track="OFFBEAT #9">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #9</span>
-                                 <span class="feat-tag" style="display: none;">feat</span>
-                             </div>
-                             <span class="file-date">26.02.2025 feat. screamsoda</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20250212_OFFBEAT_8.mp3" class="episode-link" data-track="OFFBEAT #8">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #8</span>
-                             </div>
-                             <span class="file-date">12.02.2025</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item file-featured">
-                     <a href="https://vault.petsq.net/20250129_OFFBEAT_7_feat_klankarbeit.mp3" class="episode-link" data-track="OFFBEAT #7">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #7</span>
-                                 <span class="feat-tag" style="display: none;">feat</span>
-                             </div>
-                             <span class="file-date">29.01.2025 feat. klankarbeit</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20250115_OFFBEAT_6.mp3" class="episode-link" data-track="OFFBEAT #6">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #6</span>
-                             </div>
-                             <span class="file-date">15.01.2025</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20241127_OFFBEAT_4.mp3" class="episode-link" data-track="OFFBEAT #4">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #4</span>
-                             </div>
-                             <span class="file-date">27.11.2024</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20241023_OFFBEAT_3.mp3" class="episode-link" data-track="OFFBEAT #3">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #3</span>
-                             </div>
-                             <span class="file-date">23.10.2024</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20241009_OFFBEAT_2.mp3" class="episode-link" data-track="OFFBEAT #2">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #2</span>
-                             </div>
-                             <span class="file-date">09.10.2024</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-
-                 <li class="file-item">
-                     <a href="https://vault.petsq.net/20240925_OFFBEAT_1.mp3" class="episode-link" data-track="OFFBEAT #1">
-                         <div class="file-info">
-                             <div class="file-number-container">
-                                 <span class="file-number">OFFBEAT #1</span>
-                             </div>
-                             <span class="file-date">25.09.2024</span>
-                         </div>
-                         <div class="right-elements">
-                             <div class="time-indicator">00:00 / 00:00</div>
-                             <div class="file-icon">
-                                 <i class="fa-solid fa-play"></i>
-                             </div>
-                         </div>
-                     </a>
-                     <div class="expanded-player">
-                         <div class="progress-container">
-                             <div class="progress-bar">
-                                 <div class="progress-filled"></div>
-                             </div>
-                             <div class="progress-time">
-                                 <span class="current-time">00:00</span>
-                                 <span class="duration-time">00:00</span>
-                             </div>
-                         </div>
-                         <div class="player-controls">
-                             <button class="control-btn rewind-btn">
-                                 -30sec
-                             </button>
-                             <button class="control-btn play-pause-btn">
-                                 <i class="fa-solid fa-play"></i>
-                             </button>
-                             <button class="control-btn forward-btn">
-                                 +30sec
-                             </button>
-                         </div>
-                     </div>
-                 </li>
-             </ul>
+        <!-- Episode Grid -->
+        <section class="episode-grid" id="episodeGrid">
+            <!-- Episodes will be dynamically generated by JavaScript -->
         </section>
 
         <footer>
-            <p>&copy; 2025 offbeat.petsq.net</p>
+            <div class="footer-content">
+                <div class="footer-left">
+                    <h1>OFFBEAT</h1>
+                    <p class="subtitle">live every other wednesday 18:00 - 20:00 (cet)</p>
+                    <a href="https://radio.worm.org" class="footer-link" target="_blank">radio.worm.org</a>
+                </div>
+                <div class="footer-right">
+                    <a href="https://petsq.net" class="footer-link" target="_blank">petsq.net</a>
+                    <a href="https://instagram.com/petsq010" class="footer-link" target="_blank">instagram.com/petsq010</a>
+                </div>
+            </div>
+            <p class="copyright">&copy; 2025 offbeat.petsq.net</p>
         </footer>
     </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Switch Episode?</div>
+            <div class="modal-message" id="modalMessage">Switch to OFFBEAT #9?</div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirm">Switch</button>
+            </div>
+        </div>
+    </div>
+
     <audio id="audioPlayer" preload="metadata" crossorigin="anonymous" playsinline webkit-playsinline></audio>
 
     <script src="scripts.js"></script>
