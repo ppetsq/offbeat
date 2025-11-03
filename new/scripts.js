@@ -75,6 +75,8 @@ document.addEventListener("DOMContentLoaded", function() {
     let isAudioContextInitialized = false;
     let visualizerAnimationId = null;
     let modalCallback = null; // Callback for modal confirmation
+    let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    let useWebAudio = !isMobile; // Disable Web Audio API on mobile for reliable background playback
 
     // =====================================
     // CONSTANTS
@@ -130,12 +132,18 @@ document.addEventListener("DOMContentLoaded", function() {
             // Do NOT pause when hidden - let it keep playing
             if (document.visibilityState === 'hidden' && !audioPlayer.paused) {
                 console.log('Page hidden, audio continues playing');
+            } else if (document.visibilityState === 'visible' && !audioPlayer.paused) {
+                console.log('Page visible, ensuring playback continues');
+                // Resume audio context if needed (desktop only)
+                resumeAudioContext();
             }
         });
 
-        // Resume audio context on any user interaction
-        document.addEventListener('touchstart', resumeAudioContext, { passive: true });
-        document.addEventListener('click', resumeAudioContext, { passive: true });
+        // Resume audio context on any user interaction (desktop only)
+        if (useWebAudio) {
+            document.addEventListener('touchstart', resumeAudioContext, { passive: true });
+            document.addEventListener('click', resumeAudioContext, { passive: true });
+        }
     }
 
     // =====================================
@@ -232,10 +240,15 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // =====================================
-    // WEB AUDIO API INITIALIZATION
+    // WEB AUDIO API INITIALIZATION (DESKTOP ONLY)
     // =====================================
     function initializeAudioContext() {
         if (isAudioContextInitialized) return;
+        if (!useWebAudio) {
+            console.log("Skipping Web Audio API initialization on mobile for reliable background playback");
+            isAudioContextInitialized = true;
+            return;
+        }
 
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -288,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function() {
             applyVolume();
 
             isAudioContextInitialized = true;
-            console.log("Audio Context Initialized");
+            console.log("Audio Context Initialized (Desktop Mode)");
         } catch (e) {
             console.error("Web Audio API initialization error:", e);
             alert("Sorry, your browser doesn't support the necessary Web Audio features for this site.");
@@ -296,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function resumeAudioContext() {
-        if (audioContext && audioContext.state === 'suspended') {
+        if (useWebAudio && audioContext && audioContext.state === 'suspended') {
             audioContext.resume()
                 .then(() => console.log("AudioContext resumed"))
                 .catch(e => console.error("Error resuming AudioContext:", e));
@@ -304,10 +317,10 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // =====================================
-    // REVERB IMPULSE RESPONSE
+    // REVERB IMPULSE RESPONSE (DESKTOP ONLY)
     // =====================================
     function createReverbImpulse() {
-        if (!audioContext || !convolver) return;
+        if (!useWebAudio || !audioContext || !convolver) return;
         const sampleRate = audioContext.sampleRate;
         const length = 1.2 * sampleRate;
         const impulse = audioContext.createBuffer(2, length, sampleRate);
@@ -342,7 +355,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // =====================================
-    // WAVEFORM VISUALIZER
+    // WAVEFORM VISUALIZER (DESKTOP ONLY)
     // =====================================
     function drawVisualizer() {
         if (!canvasCtx || !canvas) {
@@ -354,7 +367,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const strokeColor = computedStyle.getPropertyValue('--waveform-color').trim();
         const idleColor = computedStyle.getPropertyValue('--slider-bg').trim();
 
-        if (!audioPlayer.paused && isAudioContextInitialized && analyserNode) {
+        if (!audioPlayer.paused && isAudioContextInitialized && useWebAudio && analyserNode) {
             visualizerAnimationId = requestAnimationFrame(drawVisualizer);
 
             analyserNode.getByteTimeDomainData(dataArray);
@@ -729,9 +742,14 @@ document.addEventListener("DOMContentLoaded", function() {
     function applyVolume() {
         const value = parseInt(volumeSlider.value);
         volumeValue.textContent = `${value}%`;
-        if (gainNode) {
+
+        if (useWebAudio && gainNode && audioContext) {
+            // Desktop: Use Web Audio API gain node
             const volume = Math.pow(value / 100, 2);
             gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        } else {
+            // Mobile: Use direct HTML5 audio volume
+            audioPlayer.volume = value / 100;
         }
     }
 
@@ -764,7 +782,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function applyAudioFilter() {
-        if (!filterNode || !isAudioContextInitialized) return;
+        if (!useWebAudio || !filterNode || !isAudioContextInitialized) return;
 
         if (!filterActive) {
             filterNode.type = 'allpass';
@@ -834,7 +852,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function applyReverb() {
-        if (!reverbSendNode || !isAudioContextInitialized) return;
+        if (!useWebAudio || !reverbSendNode || !isAudioContextInitialized) return;
 
         const value = parseInt(reverbSlider.value);
         let sendAmount = 0;
@@ -867,7 +885,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function adjustReverbLowcut(direction) {
-        if (!reverbLowcutNode || !isAudioContextInitialized) return;
+        if (!useWebAudio || !reverbLowcutNode || !isAudioContextInitialized) return;
         resumeAudioContext();
 
         let step = currentLowcutFreq * 0.1;
@@ -1054,6 +1072,18 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbActive = false;
         }
 
+        // Hide DJ controls on mobile (no Web Audio API = no effects)
+        if (isMobile) {
+            const playerRight = document.querySelector('.player-right');
+            if (playerRight) {
+                playerRight.style.display = 'none';
+            }
+            console.log("Mobile device detected - DJ controls disabled for reliable background playback");
+
+            // On mobile, set initial HTML5 audio volume directly
+            audioPlayer.volume = parseInt(volumeSlider.value) / 100;
+        }
+
         // Enable background playback
         enableBackgroundPlayback();
         setupMediaSession();
@@ -1065,11 +1095,11 @@ document.addEventListener("DOMContentLoaded", function() {
         initializeFromHash();
 
         // Draw initial visualizer state
-        if (canvasCtx) {
+        if (canvasCtx && useWebAudio) {
             requestAnimationFrame(drawVisualizer);
         }
 
-        console.log("Offbeat Archive initialized");
+        console.log(`Offbeat Archive initialized (${isMobile ? 'Mobile' : 'Desktop'} Mode)`);
     }
 
     initializeApp();
