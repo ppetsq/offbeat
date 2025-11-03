@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="offbeat.petsq.net - offbeat archive">
+    <meta property="og:title" content="offbeat archive">
+    <meta property="og:description" content="live every other wednesday 18:00 - 20:00 (cet)">
+    <meta property="og:url" content="https://offbeat.petsq.net/">
+    <title>offbeat archive</title>
+
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script defer src="https://cdn.overtracking.com/t/tqQ6xkYYUxlKe2u9N/"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero Image Section with Fade Overlay -->
+        <div class="hero-section">
+            <img src="https://vault.petsq.net/ob25.jpg" alt="Offbeat 2025" class="hero-image">
+            <div class="hero-fade"></div>
+        </div>
+
+        <!-- Main Player Unit -->
+        <div class="main-player" id="mainPlayer">
+            <!-- Left Side: Playback -->
+            <div class="player-left">
+                <!-- Track Info Display -->
+                <div class="player-info">
+                    <div class="track-title" id="trackTitle">OFFBEAT #23</div>
+                    <div class="track-meta">
+                        <span class="track-date" id="trackDate">22.10.2025</span>
+                        <span class="track-guest" id="trackGuest"></span>
+                    </div>
+                </div>
+
+                <!-- Playback Controls Row -->
+                <div class="playback-controls">
+                    <button class="skip-btn" id="rewindBtn" aria-label="Rewind 30 seconds">-30sec</button>
+                    <button class="main-play-pause" id="mainPlayPause" aria-label="Play/Pause">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                    <button class="skip-btn" id="forwardBtn" aria-label="Forward 30 seconds">+30sec</button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="main-progress-container">
+                    <div class="main-progress-bar" id="mainProgressBar">
+                        <div class="main-progress-filled" id="mainProgressFilled"></div>
+                    </div>
+                    <div class="main-time-display">
+                        <span id="currentTime">00:00</span>
+                        <span id="duration">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Controls & Visualizer -->
+            <div class="player-right">
+                <!-- Master Controls Row -->
+                <div class="master-controls">
+                    <div class="volume-container">
+                        <div class="volume-control">
+                            <div class="volume-label">
+                                <span>master volume</span>
+                                <span class="volume-value">100%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume">
+                        </div>
+                        <div class="visualizer-container">
+                            <canvas id="waveformCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Effects Section -->
+                <div class="effects-section">
+                    <div class="filter-container">
+                        <div class="knob-wrapper">
+                            <input type="range" min="0" max="100" value="50" class="filter-slider" id="masterFilter" aria-label="Filter Knob">
+                            <div class="knob-visual">
+                                <div class="knob-indicator"></div>
+                            </div>
+                        </div>
+                        <button class="filter-toggle">filter</button>
+                    </div>
+                    <div class="reverb-container">
+                        <div class="knob-wrapper">
+                            <input type="range" min="0" max="100" value="0" class="reverb-slider" id="masterReverb" aria-label="Reverb Knob">
+                            <div class="knob-visual">
+                                <div class="knob-indicator"></div>
+                            </div>
+                        </div>
+                        <button class="reverb-toggle">reverb</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Episode Grid -->
+        <section class="episode-grid" id="episodeGrid">
+            <!-- Episodes will be dynamically generated by JavaScript -->
+        </section>
+
+        <footer>
+            <h1>offbeat archive</h1>
+            <p class="subtitle">live every other wednesday 18:00 - 20:00 (cet)</p>
+            <a href="https://radio.worm.org" class="radio-link" target="_blank">radio.worm.org</a>
+            <p class="copyright">&copy; 2025 offbeat.petsq.net</p>
+        </footer>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Switch Episode?</div>
+            <div class="modal-message" id="modalMessage">Switch to OFFBEAT #9?</div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirm">Switch</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audioPlayer" preload="metadata" crossorigin="anonymous" playsinline webkit-playsinline></audio>
+
+    <script src="scripts.js"></script>
+
+</body>
+</html>
