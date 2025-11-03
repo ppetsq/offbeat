@@ -20,6 +20,7 @@
     --border-radius: 12px;
     --center-marker: rgba(139, 157, 131, 0.5);
     --cable-color: #444444;
+    --waveform-color: #16BE54;
 }
 
 /* ==================
@@ -86,6 +87,22 @@ a:hover {
     z-index: 1;
 }
 
+.hero-waveform {
+    position: absolute;
+    bottom: -60px;
+    left: 0;
+    right: 0;
+    padding: 30px 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.hero-waveform canvas {
+    display: block;
+    width: 100%;
+    height: 120px;
+}
+
 /* ==================
    MAIN PLAYER UNIT
    ================== */
@@ -100,8 +117,7 @@ a:hover {
 @media (min-width: 900px) {
     .main-player {
         display: grid;
-        grid-template-columns: 1fr minmax(auto, 700px) minmax(auto, 700px) 1fr;
-        gap: 40px;
+        grid-template-columns: 1fr minmax(auto, 1200px) 1fr;
         align-items: start;
         padding: 40px 20px;
     }
@@ -110,10 +126,11 @@ a:hover {
         grid-column: 2;
         display: flex;
         flex-direction: column;
+        margin-bottom: 30px;
     }
 
     .player-right {
-        grid-column: 3;
+        grid-column: 2;
         display: flex;
         flex-direction: column;
         gap: 20px;
@@ -243,16 +260,12 @@ a:hover {
     }
 }
 
-.volume-container {
-    flex: 1;
-}
-
 .volume-control {
     display: flex;
     flex-direction: column;
     background-color: transparent;
     padding: 0;
-    margin-bottom: 15px;
+    margin-top: 20px;
 }
 
 .volume-label {
@@ -305,22 +318,37 @@ a:hover {
     cursor: pointer;
 }
 
-/* Waveform Visualizer */
-.visualizer-container {
-    width: 100%;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: var(--border-radius);
-    padding: 15px;
-    box-sizing: border-box;
-    border: 1px solid var(--border-color);
+/* DJ Controls Toggle */
+.dj-controls-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
 }
 
-#waveformCanvas {
-    display: block;
-    width: 100%;
-    height: 60px;
-    border-radius: 6px;
-    object-fit: fill;
+.dj-toggle-btn {
+    background-color: var(--button-bg);
+    border: 1px solid var(--border-color);
+    color: var(--accent-color);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dj-toggle-btn:hover {
+    background-color: var(--button-hover);
+}
+
+.dj-toggle-btn i {
+    transition: transform 0.3s ease;
+}
+
+.dj-toggle-btn.active i {
+    transform: rotate(180deg);
 }
 
 /* Effects Section */
@@ -330,11 +358,24 @@ a:hover {
     gap: 0;
     align-items: flex-start;
     justify-content: center;
+    max-height: 150px;
+    opacity: 1;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+}
+
+.effects-section.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
 }
 
 @media (max-width: 899px) {
     .effects-section {
         margin-bottom: 20px;
+    }
+
+    .effects-section.collapsed {
+        margin-bottom: 0;
     }
 }
 
@@ -504,7 +545,7 @@ a:hover {
     transform: translateX(-50%);
     top: 66px;
     height: 28px;
-    z-index: -1;
+    z-index: 0;
     border-radius: 1px;
 }
 
@@ -570,8 +611,30 @@ a:hover {
 footer {
     margin: 60px 0 40px 0;
     padding: 30px 20px;
-    text-align: center;
     border-top: 1px solid var(--border-color);
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.footer-left {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.footer-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 footer h1 {
@@ -579,27 +642,27 @@ footer h1 {
     font-weight: 500;
     line-height: 1.1;
     letter-spacing: 0.5px;
-    margin: 0 0 12px 0;
+    margin: 0;
     color: var(--text-color);
 }
 
 footer .subtitle {
     font-size: 0.85rem;
     color: var(--date-color);
-    margin: 0 0 10px 0;
+    margin: 0;
     font-style: italic;
 }
 
-footer .radio-link {
-    display: inline-block;
+.footer-link {
     font-size: 0.85rem;
-    margin-bottom: 20px;
+    display: inline-block;
 }
 
 footer .copyright {
     font-size: 0.85rem;
     color: var(--date-color);
-    margin: 20px 0 0 0;
+    margin: 0;
+    text-align: center;
 }
 
 /* ==================
@@ -741,8 +804,28 @@ footer .copyright {
         height: 100px;
     }
 
+    .hero-waveform {
+        bottom: -40px;
+        padding: 20px 0;
+    }
+
+    .hero-waveform canvas {
+        height: 70px;
+    }
+
     .main-player {
         padding: 20px 15px;
+    }
+
+    .footer-content {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .footer-left,
+    .footer-right {
+        text-align: center;
     }
 
     .player-info {
@@ -779,6 +862,10 @@ footer .copyright {
 
     .master-controls {
         margin-bottom: 15px;
+    }
+
+    .dj-controls-header {
+        margin-top: 20px;
     }
 
     .effects-section {

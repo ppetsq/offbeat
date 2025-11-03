@@ -61,6 +61,10 @@ document.addEventListener("DOMContentLoaded", function() {
     const modalCancel = document.getElementById('modalCancel');
     const modalConfirm = document.getElementById('modalConfirm');
 
+    // DJ Controls toggle
+    const djToggleBtn = document.getElementById('djToggleBtn');
+    const effectsSection = document.getElementById('effectsSection');
+
     // =====================================
     // STATE VARIABLES
     // =====================================
@@ -347,7 +351,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         const computedStyle = getComputedStyle(document.documentElement);
-        const strokeColor = computedStyle.getPropertyValue('--accent-color').trim();
+        const strokeColor = computedStyle.getPropertyValue('--waveform-color').trim();
         const idleColor = computedStyle.getPropertyValue('--slider-bg').trim();
 
         if (!audioPlayer.paused && isAudioContextInitialized && analyserNode) {
@@ -355,8 +359,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
             analyserNode.getByteTimeDomainData(dataArray);
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = strokeColor || '#8B9D83';
+            canvasCtx.lineWidth = 3;
+            canvasCtx.strokeStyle = strokeColor || '#16BE54';
             canvasCtx.beginPath();
 
             const sliceWidth = canvas.width * 1.0 / bufferLength;
@@ -380,14 +384,17 @@ document.addEventListener("DOMContentLoaded", function() {
         } else {
             visualizerAnimationId = null;
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = idleColor || 'rgba(139, 157, 131, 0.2)';
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(0, canvas.height / 2);
-            canvasCtx.lineTo(canvas.width, canvas.height / 2);
-            canvasCtx.stroke();
+            // Don't draw anything when paused - just clear the canvas
         }
     }
+
+    // =====================================
+    // DJ CONTROLS TOGGLE
+    // =====================================
+    djToggleBtn.addEventListener('click', () => {
+        effectsSection.classList.toggle('collapsed');
+        djToggleBtn.classList.toggle('active');
+    });
 
     // =====================================
     // CUSTOM MODAL

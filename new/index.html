@@ -20,6 +20,10 @@
         <div class="hero-section">
             <img src="https://vault.petsq.net/ob25.jpg" alt="Offbeat 2025" class="hero-image">
             <div class="hero-fade"></div>
+            <!-- Waveform Visualizer on Hero -->
+            <div class="hero-waveform">
+                <canvas id="waveformCanvas"></canvas>
+            </div>
         </div>
 
         <!-- Main Player Unit -->
@@ -54,28 +58,29 @@
                         <span id="duration">00:00</span>
                     </div>
                 </div>
+
+                <!-- Master Volume Control -->
+                <div class="volume-control">
+                    <div class="volume-label">
+                        <span>master volume</span>
+                        <span class="volume-value">100%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume">
+                </div>
             </div>
 
-            <!-- Right Side: Controls & Visualizer -->
+            <!-- Right Side: DJ Controls -->
             <div class="player-right">
-                <!-- Master Controls Row -->
-                <div class="master-controls">
-                    <div class="volume-container">
-                        <div class="volume-control">
-                            <div class="volume-label">
-                                <span>master volume</span>
-                                <span class="volume-value">100%</span>
-                            </div>
-                            <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume">
-                        </div>
-                        <div class="visualizer-container">
-                            <canvas id="waveformCanvas"></canvas>
-                        </div>
-                    </div>
+                <!-- DJ Controls Toggle -->
+                <div class="dj-controls-header">
+                    <button class="dj-toggle-btn" id="djToggleBtn">
+                        <span>dj controls</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
                 </div>
 
-                <!-- Effects Section -->
-                <div class="effects-section">
+                <!-- Effects Section (collapsible) -->
+                <div class="effects-section collapsed" id="effectsSection">
                     <div class="filter-container">
                         <div class="knob-wrapper">
                             <input type="range" min="0" max="100" value="50" class="filter-slider" id="masterFilter" aria-label="Filter Knob">
@@ -104,9 +109,17 @@
         </section>
 
         <footer>
-            <h1>offbeat archive</h1>
-            <p class="subtitle">live every other wednesday 18:00 - 20:00 (cet)</p>
-            <a href="https://radio.worm.org" class="radio-link" target="_blank">radio.worm.org</a>
+            <div class="footer-content">
+                <div class="footer-left">
+                    <h1>OFFBEAT</h1>
+                    <p class="subtitle">live every other wednesday 18:00 - 20:00 (cet)</p>
+                    <a href="https://radio.worm.org" class="footer-link" target="_blank">radio.worm.org</a>
+                </div>
+                <div class="footer-right">
+                    <a href="https://petsq.net" class="footer-link" target="_blank">petsq.net</a>
+                    <a href="https://instagram.com/petsq010" class="footer-link" target="_blank">instagram.com/petsq010</a>
+                </div>
+            </div>
             <p class="copyright">&copy; 2025 offbeat.petsq.net</p>
         </footer>
     </div>
