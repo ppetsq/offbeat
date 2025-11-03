@@ -600,18 +600,23 @@ document.addEventListener("DOMContentLoaded", function() {
     // PLAYER CONTROLS
     // =====================================
     function updatePlayPauseIcon() {
-        const icon = mainPlayPause.querySelector('i');
-        if (!icon) return;
-
-        if (audioPlayer.paused) {
-            icon.setAttribute('data-icon', 'play');
-            icon.classList.remove('fa-pause');
-            icon.classList.add('fa-play');
-        } else {
-            icon.setAttribute('data-icon', 'pause');
-            icon.classList.remove('fa-play');
-            icon.classList.add('fa-pause');
+        // Remove existing icon (whether it's <i> or <svg> from Font Awesome)
+        const existingIcon = mainPlayPause.querySelector('i, svg');
+        if (existingIcon) {
+            existingIcon.remove();
         }
+
+        // Create new icon element
+        const icon = document.createElement('i');
+        if (audioPlayer.paused) {
+            icon.className = 'fa-solid fa-play';
+            icon.setAttribute('data-icon', 'play');
+        } else {
+            icon.className = 'fa-solid fa-pause';
+            icon.setAttribute('data-icon', 'pause');
+        }
+
+        mainPlayPause.appendChild(icon);
         console.log('Play/pause icon updated:', audioPlayer.paused ? 'play' : 'pause');
     }
 

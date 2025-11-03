@@ -81,7 +81,7 @@ a:hover {
     left: 0;
     right: 0;
     height: 200px;
-    background: linear-gradient(to bottom, rgba(5, 5, 5, 0) 0%, rgba(5, 5, 5, 0.8) 60%, #050505 100%);
+    background: linear-gradient(to bottom, rgba(18, 18, 18, 0) 0%, rgba(18, 18, 18, 0.8) 60%, #121212 100%);
     pointer-events: none;
     z-index: 1;
 }
@@ -100,20 +100,20 @@ a:hover {
 @media (min-width: 900px) {
     .main-player {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr minmax(auto, 700px) minmax(auto, 700px) 1fr;
         gap: 40px;
         align-items: start;
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 40px;
+        padding: 40px 20px;
     }
 
     .player-left {
+        grid-column: 2;
         display: flex;
         flex-direction: column;
     }
 
     .player-right {
+        grid-column: 3;
         display: flex;
         flex-direction: column;
         gap: 20px;
@@ -874,7 +874,7 @@ footer .copyright {
     }
 
     .main-player {
-        padding: 30px 40px;
+        padding: 40px 20px;
     }
 
     .track-title {
