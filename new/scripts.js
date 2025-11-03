@@ -1072,16 +1072,27 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbActive = false;
         }
 
-        // Hide DJ controls on mobile (no Web Audio API = no effects)
+        // Hide Web Audio-dependent features on mobile
         if (isMobile) {
+            // Hide DJ controls (no Web Audio API = no effects)
             const playerRight = document.querySelector('.player-right');
             if (playerRight) {
                 playerRight.style.display = 'none';
             }
-            console.log("Mobile device detected - DJ controls disabled for reliable background playback");
 
-            // On mobile, set initial HTML5 audio volume directly
-            audioPlayer.volume = parseInt(volumeSlider.value) / 100;
+            // Hide master volume (use phone's native volume controls)
+            const volumeControl = document.querySelector('.volume-control');
+            if (volumeControl) {
+                volumeControl.style.display = 'none';
+            }
+
+            // Hide waveform (requires Web Audio API AnalyserNode)
+            const heroWaveform = document.querySelector('.hero-waveform');
+            if (heroWaveform) {
+                heroWaveform.style.display = 'none';
+            }
+
+            console.log("Mobile device detected - Using native audio for background playback");
         }
 
         // Enable background playback
