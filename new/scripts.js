@@ -32,9 +32,9 @@ document.addEventListener("DOMContentLoaded", function() {
     // =====================================
     const audioPlayer = document.getElementById("audioPlayer");
     const volumeSlider = document.getElementById("masterVolume");
-    const volumeValue = document.querySelector(".volume-value");
     const filterSlider = document.getElementById("masterFilter");
     const reverbSlider = document.getElementById("masterReverb");
+    const volumeKnobWrapper = document.querySelector('.volume-container .knob-wrapper');
     const filterKnobWrapper = document.querySelector('.filter-container .knob-wrapper');
     const reverbKnobWrapper = document.querySelector('.reverb-container .knob-wrapper');
     const filterToggleBtn = document.querySelector('.filter-toggle');
@@ -405,8 +405,24 @@ document.addEventListener("DOMContentLoaded", function() {
     // DJ CONTROLS TOGGLE
     // =====================================
     djToggleBtn.addEventListener('click', () => {
+        const isCollapsing = !effectsSection.classList.contains('collapsed');
+
         effectsSection.classList.toggle('collapsed');
         djToggleBtn.classList.toggle('active');
+
+        // Disable filter and reverb when hiding controls
+        if (isCollapsing) {
+            if (filterActive) {
+                filterActive = false;
+                filterToggleBtn.classList.remove('active');
+                applyAudioFilter();
+            }
+            if (reverbActive) {
+                reverbActive = false;
+                reverbToggleBtn.classList.remove('active');
+                applyReverb();
+            }
+        }
     });
 
     // =====================================
@@ -739,9 +755,17 @@ document.addEventListener("DOMContentLoaded", function() {
     // =====================================
     // VOLUME CONTROL
     // =====================================
+    function updateVolumeKnobVisual(value) {
+        const knobIndicator = document.querySelector('.volume-container .knob-indicator');
+        if (knobIndicator) {
+            const rotationRange = 270;
+            const degree = -135 + (value / 100) * rotationRange;
+            knobIndicator.style.transform = `translateX(-50%) rotate(${degree}deg)`;
+        }
+    }
+
     function applyVolume() {
         const value = parseInt(volumeSlider.value);
-        volumeValue.textContent = `${value}%`;
 
         if (useWebAudio && gainNode && audioContext) {
             // Desktop: Use Web Audio API gain node
@@ -753,15 +777,22 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    function resetVolumeKnobToDefault() {
+        volumeSlider.value = 100;
+        volumeSlider.dispatchEvent(new Event('input'));
+    }
+
     volumeSlider.addEventListener("input", function() {
+        const currentValue = parseInt(volumeSlider.value);
+        updateVolumeKnobVisual(currentValue);
         resumeAudioContext();
         applyVolume();
         localStorage.setItem("volume", volumeSlider.value);
     });
 
     const savedVolume = localStorage.getItem("volume");
-    volumeSlider.value = savedVolume !== null ? savedVolume : 80;
-    volumeValue.textContent = `${volumeSlider.value}%`;
+    volumeSlider.value = savedVolume !== null ? savedVolume : 100;
+    updateVolumeKnobVisual(volumeSlider.value);
 
     // =====================================
     // FILTER CONTROL
@@ -825,6 +856,13 @@ document.addEventListener("DOMContentLoaded", function() {
         const currentValue = parseInt(filterSlider.value);
         updateFilterKnobVisual(currentValue);
         resumeAudioContext();
+
+        // Auto-activate filter when knob is moved
+        if (!filterActive) {
+            filterActive = true;
+            filterToggleBtn.classList.add('active');
+        }
+
         applyAudioFilter();
     });
 
@@ -876,6 +914,13 @@ document.addEventListener("DOMContentLoaded", function() {
             const currentValue = parseInt(reverbSlider.value);
             updateReverbKnobVisual(currentValue);
             resumeAudioContext();
+
+            // Auto-activate reverb when knob is moved
+            if (!reverbActive) {
+                reverbActive = true;
+                reverbToggleBtn.classList.add('active');
+            }
+
             applyReverb();
         });
         reverbToggleBtn.addEventListener('click', function() {
@@ -914,7 +959,14 @@ document.addEventListener("DOMContentLoaded", function() {
         const coords = getEventCoords(e);
         startX = coords.x;
         startY = coords.y;
-        startValue = parseInt(target === 'filter' ? filterSlider.value : reverbSlider.value);
+
+        if (target === 'volume') {
+            startValue = parseInt(volumeSlider.value);
+        } else if (target === 'filter') {
+            startValue = parseInt(filterSlider.value);
+        } else {
+            startValue = parseInt(reverbSlider.value);
+        }
 
         document.addEventListener('mousemove', handleDragMove);
         document.addEventListener('touchmove', handleDragMove, { passive: false });
@@ -939,7 +991,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
         newValue = Math.max(0, Math.min(100, newValue));
 
-        const slider = dragTarget === 'filter' ? filterSlider : reverbSlider;
+        let slider;
+        if (dragTarget === 'volume') {
+            slider = volumeSlider;
+        } else if (dragTarget === 'filter') {
+            slider = filterSlider;
+        } else {
+            slider = reverbSlider;
+        }
+
         if (slider && newValue !== parseInt(slider.value)) {
             slider.value = newValue;
             slider.dispatchEvent(new Event('input', { bubbles: true }));
@@ -958,6 +1018,13 @@ document.addEventListener("DOMContentLoaded", function() {
         document.removeEventListener('mouseleave', handleDragEnd);
     }
 
+    if (volumeKnobWrapper) {
+        volumeKnobWrapper.addEventListener('mousedown', (e) => handleDragStart(e, 'volume'));
+        volumeKnobWrapper.addEventListener('touchstart', (e) => handleDragStart(e, 'volume'), { passive: false });
+        volumeKnobWrapper.addEventListener('dblclick', (e) => {
+            e.preventDefault(); e.stopPropagation(); resetVolumeKnobToDefault();
+        });
+    }
     if (filterKnobWrapper) {
         filterKnobWrapper.addEventListener('mousedown', (e) => handleDragStart(e, 'filter'));
         filterKnobWrapper.addEventListener('touchstart', (e) => handleDragStart(e, 'filter'), { passive: false });
@@ -1060,6 +1127,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // =====================================
     function initializeApp() {
         // Initialize controls
+        updateVolumeKnobVisual(volumeSlider.value);
+
         filterSlider.value = 50;
         updateFilterKnobVisual(filterSlider.value);
         filterToggleBtn.classList.remove('active');
@@ -1078,12 +1147,6 @@ document.addEventListener("DOMContentLoaded", function() {
             const playerRight = document.querySelector('.player-right');
             if (playerRight) {
                 playerRight.style.display = 'none';
-            }
-
-            // Hide master volume (use phone's native volume controls)
-            const volumeControl = document.querySelector('.volume-control');
-            if (volumeControl) {
-                volumeControl.style.display = 'none';
             }
 
             // Hide waveform (requires Web Audio API AnalyserNode)

@@ -176,7 +176,7 @@ a:hover {
     justify-content: center;
     align-items: center;
     gap: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 .skip-btn {
@@ -262,62 +262,90 @@ a:hover {
     }
 }
 
-.volume-control {
+.volume-container {
+    width: 90px;
+    height: 110px;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex-shrink: 0;
     background-color: transparent;
     padding: 0;
-    margin-top: 20px;
+    position: relative;
+    gap: 10px;
+}
+
+.volume-container .knob-indicator {
+    transform: translateX(-50%) rotate(-135deg);
 }
 
 .volume-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
+    width: 70px;
+    height: 32px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: lowercase;
+    background-color: var(--secondary-hover);
     color: var(--date-color);
-}
-
-.volume-value {
-    font-family: 'Space Grotesk', monospace;
-}
-
-.volume-slider {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0;
+    margin-top: 15px;
+    text-align: center;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 1px rgba(255,255,255,0.1);
+    z-index: 1;
     -webkit-appearance: none;
-    width: 100%;
-    height: 6px;
-    background-color: var(--slider-bg);
+    -moz-appearance: none;
+    appearance: none;
     outline: none;
-    border-radius: 3px;
-    transition: background 0.2s;
 }
 
-.volume-slider::-webkit-slider-thumb {
+.volume-label:hover {
+    background-color: var(--secondary-hover);
+    color: var(--accent-color);
+}
+
+/* Hidden Slider for Volume Knob */
+.volume-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: inherit;
+    opacity: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 0;
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
-}
-
-.volume-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
+    background: transparent;
+    outline: none;
     border: none;
 }
 
+.volume-slider::-webkit-slider-runnable-track,
+.volume-slider::-moz-range-track,
+.volume-slider::-ms-track {
+    background: transparent;
+    border: none;
+}
+
+.volume-slider::-webkit-slider-thumb,
+.volume-slider::-moz-range-thumb,
 .volume-slider::-ms-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--slider-fill);
-    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    border: none;
+    width: 1px;
+    height: 1px;
 }
 
 /* DJ Controls Toggle */
@@ -345,11 +373,13 @@ a:hover {
     background-color: var(--button-hover);
 }
 
-.dj-toggle-btn i {
+.dj-toggle-btn i,
+.dj-toggle-btn svg {
     transition: transform 0.3s ease;
 }
 
-.dj-toggle-btn.active i {
+.dj-toggle-btn.active i,
+.dj-toggle-btn.active svg {
     transform: rotate(180deg);
 }
 
@@ -369,10 +399,24 @@ a:hover {
     max-height: 0;
     opacity: 0;
     margin: 0;
+    overflow: hidden;
 }
 
+/* Desktop: All controls in one row */
+@media (min-width: 900px) {
+    .effects-section {
+        flex-direction: row;
+        align-items: center;
+        gap: 20px;
+    }
+}
+
+/* Mobile: Stack controls vertically */
 @media (max-width: 899px) {
     .effects-section {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
         margin-bottom: 20px;
     }
 
@@ -536,6 +580,7 @@ a:hover {
 }
 
 /* Audio Cable Style */
+.volume-container::after,
 .filter-container::after,
 .reverb-container::after {
     content: '';
@@ -853,7 +898,7 @@ footer .copyright {
 
     .playback-controls {
         gap: 15px;
-        margin-bottom: 15px;
+        margin-bottom: 25px;
     }
 
     .skip-btn {

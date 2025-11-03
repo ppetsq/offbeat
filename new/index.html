@@ -58,29 +58,30 @@
                         <span id="duration">00:00</span>
                     </div>
                 </div>
-
-                <!-- Master Volume Control -->
-                <div class="volume-control">
-                    <div class="volume-label">
-                        <span>master volume</span>
-                        <span class="volume-value">100%</span>
-                    </div>
-                    <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume">
-                </div>
             </div>
 
-            <!-- Right Side: DJ Controls -->
+            <!-- Right Side: Controls -->
             <div class="player-right">
-                <!-- DJ Controls Toggle -->
+                <!-- Controls Toggle -->
                 <div class="dj-controls-header">
                     <button class="dj-toggle-btn" id="djToggleBtn">
-                        <span>dj controls</span>
+                        <span>controls</span>
                         <i class="fa-solid fa-chevron-down"></i>
                     </button>
                 </div>
 
                 <!-- Effects Section (collapsible) -->
                 <div class="effects-section collapsed" id="effectsSection">
+                    <div class="volume-container">
+                        <div class="knob-wrapper">
+                            <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume" aria-label="Volume Knob">
+                            <div class="knob-visual">
+                                <div class="knob-indicator"></div>
+                            </div>
+                        </div>
+                        <button class="volume-label">volume</button>
+                    </div>
+
                     <div class="filter-container">
                         <div class="knob-wrapper">
                             <input type="range" min="0" max="100" value="50" class="filter-slider" id="masterFilter" aria-label="Filter Knob">
