@@ -251,14 +251,17 @@ document.addEventListener("DOMContentLoaded", function() {
             const audioSourceNode = audioContext.createMediaElementSource(audioPlayer);
 
             // Connect Audio Graph
+            // Analyser taps raw signal for visualization (unaffected by volume)
+            audioSourceNode.connect(analyserNode);
+
+            // Main audio path with volume control
             audioSourceNode.connect(gainNode);
             audioSourceNode.connect(reverbSendNode);
             reverbSendNode.connect(reverbLowcutNode);
             reverbLowcutNode.connect(convolver);
             convolver.connect(reverbReturnNode);
             reverbReturnNode.connect(gainNode);
-            gainNode.connect(analyserNode);
-            analyserNode.connect(filterNode);
+            gainNode.connect(filterNode);
             filterNode.connect(audioContext.destination);
 
             // Configure Nodes
