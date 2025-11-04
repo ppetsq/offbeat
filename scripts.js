@@ -213,12 +213,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 artist: artist,
                 album: 'Offbeat Archive',
                 artwork: [
-                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '96x96', type: 'image/jpeg' },
-                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '128x128', type: 'image/jpeg' },
-                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '192x192', type: 'image/jpeg' },
-                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '256x256', type: 'image/jpeg' },
-                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '384x384', type: 'image/jpeg' },
-                    { src: 'https://vault.petsq.net/offbeat-promo.jpg', sizes: '512x512', type: 'image/jpeg' }
+                    { src: 'https://vault.petsq.net/ob25-meta.jpg', sizes: '96x96', type: 'image/jpeg' },
+                    { src: 'https://vault.petsq.net/ob25-meta.jpg', sizes: '128x128', type: 'image/jpeg' },
+                    { src: 'https://vault.petsq.net/ob25-meta.jpg', sizes: '192x192', type: 'image/jpeg' },
+                    { src: 'https://vault.petsq.net/ob25-meta.jpg', sizes: '256x256', type: 'image/jpeg' },
+                    { src: 'https://vault.petsq.net/ob25-meta.jpg', sizes: '384x384', type: 'image/jpeg' },
+                    { src: 'https://vault.petsq.net/ob25-meta.jpg', sizes: '512x512', type: 'image/jpeg' }
                 ]
             });
 
