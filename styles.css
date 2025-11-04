@@ -239,6 +239,39 @@ a:hover {
     border-radius: 3px;
     width: 0%;
     transition: width 0.1s ease;
+    pointer-events: none;
+}
+
+.main-progress-playhead {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    background-color: var(--slider-fill);
+    border: 2px solid var(--bg-color);
+    border-radius: 50%;
+    cursor: grab;
+    z-index: 2;
+    transition: left 0.1s ease, transform 0.1s ease;
+}
+
+.main-progress-playhead.dragging {
+    transition: none;
+}
+
+.main-progress-filled.dragging {
+    transition: none;
+}
+
+.main-progress-playhead:active {
+    cursor: grabbing;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.main-progress-playhead:hover {
+    transform: translate(-50%, -50%) scale(1.15);
 }
 
 .main-time-display {

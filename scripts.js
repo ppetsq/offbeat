@@ -53,6 +53,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const durationEl = document.getElementById('duration');
     const mainProgressBar = document.getElementById('mainProgressBar');
     const mainProgressFilled = document.getElementById('mainProgressFilled');
+    const mainProgressPlayhead = document.getElementById('mainProgressPlayhead');
     const episodeGrid = document.getElementById('episodeGrid');
 
     // Modal elements
@@ -77,6 +78,8 @@ document.addEventListener("DOMContentLoaded", function() {
     let modalCallback = null; // Callback for modal confirmation
     let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     let useWebAudio = !isMobile; // Disable Web Audio API on mobile for reliable background playback
+    let isPlayheadDragging = false; // Track if user is dragging playhead
+    let targetSeekTime = null; // Target time to seek to after drag ends
 
     // =====================================
     // CONSTANTS
@@ -665,8 +668,12 @@ document.addEventListener("DOMContentLoaded", function() {
         currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
         durationEl.textContent = formatTime(audioPlayer.duration);
 
-        const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-        mainProgressFilled.style.width = `${progressPercentage}%`;
+        // Don't update visual position during dragging - user controls it
+        if (!isPlayheadDragging) {
+            const progressPercentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            mainProgressFilled.style.width = `${progressPercentage}%`;
+            mainProgressPlayhead.style.left = `${progressPercentage}%`;
+        }
 
         updateMediaSessionPositionState();
     }
@@ -702,10 +709,88 @@ document.addEventListener("DOMContentLoaded", function() {
     // Progress bar seeking
     mainProgressBar.addEventListener('click', (e) => {
         if (!audioPlayer.duration || isNaN(audioPlayer.duration)) return;
+        // Don't seek if clicking on the playhead
+        if (e.target === mainProgressPlayhead) return;
         resumeAudioContext();
         const rect = mainProgressBar.getBoundingClientRect();
         const clickPosition = (e.clientX - rect.left) / rect.width;
         audioPlayer.currentTime = Math.max(0, Math.min(audioPlayer.duration, clickPosition * audioPlayer.duration));
+    });
+
+    // Playhead drag functionality
+    function updatePlayheadVisualPosition(clientX) {
+        if (!audioPlayer.duration || isNaN(audioPlayer.duration)) return;
+
+        const rect = mainProgressBar.getBoundingClientRect();
+        const position = (clientX - rect.left) / rect.width;
+        const clampedPosition = Math.max(0, Math.min(1, position));
+
+        // Update visual position immediately
+        const progressPercentage = clampedPosition * 100;
+        mainProgressPlayhead.style.left = `${progressPercentage}%`;
+        mainProgressFilled.style.width = `${progressPercentage}%`;
+
+        // Store the target time for seeking when drag ends
+        targetSeekTime = clampedPosition * audioPlayer.duration;
+    }
+
+    // Mouse events
+    mainProgressPlayhead.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        isPlayheadDragging = true;
+        mainProgressPlayhead.classList.add('dragging');
+        mainProgressFilled.classList.add('dragging');
+        resumeAudioContext();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isPlayheadDragging) return;
+        e.preventDefault();
+        updatePlayheadVisualPosition(e.clientX);
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isPlayheadDragging) {
+            isPlayheadDragging = false;
+            mainProgressPlayhead.classList.remove('dragging');
+            mainProgressFilled.classList.remove('dragging');
+
+            // Now seek the audio to the final position
+            if (targetSeekTime !== null) {
+                audioPlayer.currentTime = Math.max(0, Math.min(audioPlayer.duration, targetSeekTime));
+                targetSeekTime = null;
+            }
+        }
+    });
+
+    // Touch events for mobile
+    mainProgressPlayhead.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isPlayheadDragging = true;
+        mainProgressPlayhead.classList.add('dragging');
+        mainProgressFilled.classList.add('dragging');
+        resumeAudioContext();
+    });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isPlayheadDragging) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        updatePlayheadVisualPosition(touch.clientX);
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+        if (isPlayheadDragging) {
+            isPlayheadDragging = false;
+            mainProgressPlayhead.classList.remove('dragging');
+            mainProgressFilled.classList.remove('dragging');
+
+            // Now seek the audio to the final position
+            if (targetSeekTime !== null) {
+                audioPlayer.currentTime = Math.max(0, Math.min(audioPlayer.duration, targetSeekTime));
+                targetSeekTime = null;
+            }
+        }
     });
 
     // =====================================
