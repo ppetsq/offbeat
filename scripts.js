@@ -499,8 +499,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
         }
-        // Default to episode 23
-        const defaultEpisode = episodes.find(ep => ep.number === 23) || episodes[0];
+        // Default to newest episode
+        const defaultEpisode = episodes[0];
         loadEpisodeIntoPlayer(defaultEpisode, false);
     }
 
