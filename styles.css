@@ -168,6 +168,7 @@ a:hover {
 .track-guest {
     font-style: italic;
     margin-left: 8px;
+    color: var(--waveform-color);
 }
 
 /* Playback Controls Row */
