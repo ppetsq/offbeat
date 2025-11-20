@@ -2,6 +2,7 @@
 // EPISODE DATA
 // =====================================
 const episodes = [
+    { number: 25, date: '19.11.2025', url: 'https://vault.petsq.net/20251119_OFFBEAT_25.mp3', guest: null },
     { number: 24, date: '05.11.2025', url: 'https://vault.petsq.net/20251105_OFFBEAT_24_feat_simak.mp3', guest: 'sima k' },
     { number: 23, date: '22.10.2025', url: 'https://vault.petsq.net/20251022_OFFBEAT_23.mp3', guest: null },
     { number: 22, date: '08.10.2025', url: 'https://vault.petsq.net/20251008_OFFBEAT_22.mp3', guest: null },
