@@ -396,6 +396,66 @@ a:hover {
     margin-bottom: 15px;
 }
 
+/* Autoplay & Shuffle Toggles */
+.autoplay-container,
+.shuffle-container {
+    width: 90px;
+    height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex-shrink: 0;
+}
+
+.toggle-switch {
+    width: 26px;
+    height: 44px;
+    background-color: var(--border-color);
+    border-radius: 13px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s ease;
+    margin-top: 8px;
+}
+
+.toggle-knob {
+    width: 22px;
+    height: 22px;
+    background-color: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 20px;
+    left: 2px;
+    transition: top 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.autoplay-container.active .toggle-switch,
+.shuffle-container.active .toggle-switch {
+    background-color: var(--accent-color);
+}
+
+.autoplay-container.active .toggle-knob,
+.shuffle-container.active .toggle-knob {
+    top: 2px;
+}
+
+.toggle-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: lowercase;
+    color: var(--date-color);
+    letter-spacing: 0.5px;
+    margin-top: 23px;
+    transition: color 0.2s ease;
+}
+
+.autoplay-container.active .toggle-label,
+.shuffle-container.active .toggle-label {
+    color: var(--accent-color);
+}
+
 .dj-toggle-btn {
     background-color: var(--button-bg);
     border: 1px solid var(--border-color);

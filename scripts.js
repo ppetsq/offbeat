@@ -74,6 +74,10 @@ document.addEventListener("DOMContentLoaded", function() {
     // DJ Controls toggle
     const djToggleBtn = document.getElementById('djToggleBtn');
     const effectsSection = document.getElementById('effectsSection');
+    const autoplayToggle = document.getElementById('autoplayToggle');
+    const autoplayContainer = document.getElementById('autoplayContainer');
+    const shuffleToggle = document.getElementById('shuffleToggle');
+    const shuffleContainer = document.getElementById('shuffleContainer');
 
     // =====================================
     // STATE VARIABLES
@@ -89,6 +93,9 @@ document.addEventListener("DOMContentLoaded", function() {
     let useWebAudio = !isMobile; // Disable Web Audio API on mobile for reliable background playback
     let isPlayheadDragging = false; // Track if user is dragging playhead
     let targetSeekTime = null; // Target time to seek to after drag ends
+    let autoplayEnabled = localStorage.getItem('autoplay') !== 'false'; // On by default
+    let shuffleEnabled = localStorage.getItem('shuffle') === 'true'; // Off by default
+    let lastSavedTime = 0; // Throttle position saves
 
     // =====================================
     // CONSTANTS
@@ -437,6 +444,22 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
+    // Autoplay toggle (desktop only)
+    autoplayToggle.addEventListener('click', () => {
+        autoplayEnabled = !autoplayEnabled;
+        autoplayContainer.classList.toggle('active', autoplayEnabled);
+        localStorage.setItem('autoplay', autoplayEnabled.toString());
+        console.log(`Autoplay ${autoplayEnabled ? 'enabled' : 'disabled'}`);
+    });
+
+    // Shuffle toggle (desktop only)
+    shuffleToggle.addEventListener('click', () => {
+        shuffleEnabled = !shuffleEnabled;
+        shuffleContainer.classList.toggle('active', shuffleEnabled);
+        localStorage.setItem('shuffle', shuffleEnabled.toString());
+        console.log(`Shuffle ${shuffleEnabled ? 'enabled' : 'disabled'}`);
+    });
+
     // =====================================
     // CUSTOM MODAL
     // =====================================
@@ -574,6 +597,20 @@ document.addEventListener("DOMContentLoaded", function() {
         currentTimeEl.textContent = '00:00';
         durationEl.textContent = '00:00';
         mainProgressFilled.style.width = '0%';
+
+        // Restore saved position once metadata is loaded
+        const savedPosition = localStorage.getItem(`position-${episode.number}`);
+        if (savedPosition) {
+            const restorePosition = () => {
+                const position = parseFloat(savedPosition);
+                if (!isNaN(position) && position > 0 && position < audioPlayer.duration - 5) {
+                    audioPlayer.currentTime = position;
+                    console.log(`Restored position: ${formatTime(position)}`);
+                }
+                audioPlayer.removeEventListener('loadedmetadata', restorePosition);
+            };
+            audioPlayer.addEventListener('loadedmetadata', restorePosition);
+        }
 
         // Auto-play if requested and audio context is initialized
         if (autoPlay) {
@@ -812,7 +849,18 @@ document.addEventListener("DOMContentLoaded", function() {
     // =====================================
     // AUDIO PLAYER EVENTS
     // =====================================
-    audioPlayer.addEventListener('timeupdate', updateTimeDisplay);
+    audioPlayer.addEventListener('timeupdate', () => {
+        updateTimeDisplay();
+
+        // Save playback position (throttled to every 5 seconds)
+        if (currentEpisode && !isNaN(audioPlayer.currentTime) && audioPlayer.currentTime > 0) {
+            const now = Date.now();
+            if (now - lastSavedTime > 5000) {
+                localStorage.setItem(`position-${currentEpisode.number}`, audioPlayer.currentTime.toString());
+                lastSavedTime = now;
+            }
+        }
+    });
 
     audioPlayer.addEventListener('loadedmetadata', () => {
         updateTimeDisplay();
@@ -850,6 +898,36 @@ document.addEventListener("DOMContentLoaded", function() {
         visualizerAnimationId = null;
         if (canvasCtx && canvas) {
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Clear saved position for completed episode
+        if (currentEpisode) {
+            localStorage.removeItem(`position-${currentEpisode.number}`);
+        }
+
+        // Auto-play next episode if enabled
+        if (autoplayEnabled && currentEpisode) {
+            let nextEpisode;
+
+            if (shuffleEnabled) {
+                // Pick a random episode (excluding current)
+                const otherEpisodes = episodes.filter(ep => ep.number !== currentEpisode.number);
+                nextEpisode = otherEpisodes[Math.floor(Math.random() * otherEpisodes.length)];
+                console.log(`Shuffle: switching to episode #${nextEpisode.number}`);
+            } else {
+                // Next episode is the older one (next in array since sorted newest first)
+                const currentIndex = episodes.findIndex(ep => ep.number === currentEpisode.number);
+                if (currentIndex < episodes.length - 1) {
+                    nextEpisode = episodes[currentIndex + 1];
+                    console.log(`Autoplay: switching to episode #${nextEpisode.number}`);
+                } else {
+                    console.log('Autoplay: reached end of archive');
+                }
+            }
+
+            if (nextEpisode) {
+                loadEpisodeIntoPlayer(nextEpisode, true);
+            }
         }
     });
 
@@ -1242,9 +1320,18 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbActive = false;
         }
 
+        // Initialize autoplay and shuffle toggle states (desktop only)
+        if (autoplayContainer) {
+            autoplayContainer.classList.toggle('active', autoplayEnabled);
+        }
+        if (shuffleContainer) {
+            shuffleContainer.classList.toggle('active', shuffleEnabled);
+        }
+
         // Hide Web Audio-dependent features on mobile
         if (isMobile) {
             // Hide DJ controls (no Web Audio API = no effects)
+            // Autoplay is always enabled on mobile
             const playerRight = document.querySelector('.player-right');
             if (playerRight) {
                 playerRight.style.display = 'none';
@@ -1255,6 +1342,9 @@ document.addEventListener("DOMContentLoaded", function() {
             if (heroWaveform) {
                 heroWaveform.style.display = 'none';
             }
+
+            // Force autoplay enabled on mobile
+            autoplayEnabled = true;
 
             console.log("Mobile device detected - Using native audio for background playback");
         }
