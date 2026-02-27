@@ -385,8 +385,6 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
-        const computedStyle = getComputedStyle(document.documentElement);
-        const strokeColor = computedStyle.getPropertyValue('--waveform-color').trim() || '#16BE54';
         const fillColor = 'rgba(22, 190, 84, 0.15)';
         const glowColor = 'rgba(22, 190, 84, 0.6)';
 
@@ -400,24 +398,38 @@ document.addEventListener("DOMContentLoaded", function() {
             const centerY = canvas.height / 2;
             const maxAmplitude = canvas.height / 2;
 
+            // Create gradient stroke (subtle green variation)
+            const strokeGradient = canvasCtx.createLinearGradient(0, 0, canvas.width, 0);
+            strokeGradient.addColorStop(0, '#12a448');
+            strokeGradient.addColorStop(0.5, '#1ed760');
+            strokeGradient.addColorStop(1, '#12a448');
+
+            // Downsample for smoother curves (use every Nth point)
+            const step = 8;
+            const points = [];
+            for (let i = 0; i < bufferLength; i += step) {
+                const v = dataArray[i] / 128.0 - 1;
+                points.push({
+                    x: (i / bufferLength) * canvas.width,
+                    y: v
+                });
+            }
+            // Add final point
+            points.push({ x: canvas.width, y: 0 });
+
             if (mirrorEnabled) {
                 // MIRRORED MODE: Symmetric waveform with fills
 
-                // Pre-calculate amplitude values for reuse
-                const amplitudes = new Array(bufferLength);
-                for (let i = 0; i < bufferLength; i++) {
-                    const v = dataArray[i] / 128.0 - 1;
-                    amplitudes[i] = Math.abs(v);
-                }
-
-                // Draw top half (filled area)
+                // Draw top half (filled area with smooth curves)
                 canvasCtx.beginPath();
                 canvasCtx.moveTo(0, centerY);
-                let x = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    const y = centerY - amplitudes[i] * maxAmplitude;
-                    canvasCtx.lineTo(x, y);
-                    x += sliceWidth;
+                for (let i = 0; i < points.length - 1; i++) {
+                    const curr = points[i];
+                    const next = points[i + 1];
+                    const cpX = (curr.x + next.x) / 2;
+                    const currY = centerY - Math.abs(curr.y) * maxAmplitude;
+                    const cpY = centerY - Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
                 }
                 canvasCtx.lineTo(canvas.width, centerY);
                 canvasCtx.closePath();
@@ -427,18 +439,20 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Draw bottom half (mirrored, filled area)
                 canvasCtx.beginPath();
                 canvasCtx.moveTo(0, centerY);
-                x = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    const y = centerY + amplitudes[i] * maxAmplitude;
-                    canvasCtx.lineTo(x, y);
-                    x += sliceWidth;
+                for (let i = 0; i < points.length - 1; i++) {
+                    const curr = points[i];
+                    const next = points[i + 1];
+                    const cpX = (curr.x + next.x) / 2;
+                    const currY = centerY + Math.abs(curr.y) * maxAmplitude;
+                    const cpY = centerY + Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
                 }
                 canvasCtx.lineTo(canvas.width, centerY);
                 canvasCtx.closePath();
                 canvasCtx.fill();
 
-                // Draw stroke lines for definition with glow
-                canvasCtx.strokeStyle = strokeColor;
+                // Draw stroke lines with gradient and glow
+                canvasCtx.strokeStyle = strokeGradient;
                 canvasCtx.lineWidth = 2;
                 canvasCtx.shadowColor = glowColor;
                 canvasCtx.shadowBlur = 12;
@@ -447,58 +461,53 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 // Top stroke
                 canvasCtx.beginPath();
-                x = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    const y = centerY - amplitudes[i] * maxAmplitude;
-                    if (i === 0) {
-                        canvasCtx.moveTo(x, y);
-                    } else {
-                        canvasCtx.lineTo(x, y);
-                    }
-                    x += sliceWidth;
+                canvasCtx.moveTo(0, centerY);
+                for (let i = 0; i < points.length - 1; i++) {
+                    const curr = points[i];
+                    const next = points[i + 1];
+                    const cpX = (curr.x + next.x) / 2;
+                    const currY = centerY - Math.abs(curr.y) * maxAmplitude;
+                    const cpY = centerY - Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
                 }
                 canvasCtx.stroke();
 
                 // Bottom stroke (mirrored)
                 canvasCtx.beginPath();
-                x = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    const y = centerY + amplitudes[i] * maxAmplitude;
-                    if (i === 0) {
-                        canvasCtx.moveTo(x, y);
-                    } else {
-                        canvasCtx.lineTo(x, y);
-                    }
-                    x += sliceWidth;
+                canvasCtx.moveTo(0, centerY);
+                for (let i = 0; i < points.length - 1; i++) {
+                    const curr = points[i];
+                    const next = points[i + 1];
+                    const cpX = (curr.x + next.x) / 2;
+                    const currY = centerY + Math.abs(curr.y) * maxAmplitude;
+                    const cpY = centerY + Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
                 }
                 canvasCtx.stroke();
 
-                // Reset shadow for next frame
+                // Reset shadow
                 canvasCtx.shadowBlur = 0;
 
             } else {
-                // STANDARD MODE: Single line waveform (original)
+                // STANDARD MODE: Single line waveform with smooth curves
                 canvasCtx.lineWidth = 3;
-                canvasCtx.strokeStyle = strokeColor;
+                canvasCtx.strokeStyle = strokeGradient;
                 canvasCtx.shadowColor = glowColor;
                 canvasCtx.shadowBlur = 15;
                 canvasCtx.shadowOffsetX = 0;
                 canvasCtx.shadowOffsetY = 0;
                 canvasCtx.beginPath();
 
-                let x = 0;
-                for (let i = 0; i < bufferLength; i++) {
-                    const v = dataArray[i] / 128.0 - 1;
-                    const y = centerY + v * maxAmplitude;
-                    if (i === 0) {
-                        canvasCtx.moveTo(x, y);
-                    } else {
-                        canvasCtx.lineTo(x, y);
-                    }
-                    x += sliceWidth;
+                canvasCtx.moveTo(0, centerY + points[0].y * maxAmplitude);
+                for (let i = 0; i < points.length - 1; i++) {
+                    const curr = points[i];
+                    const next = points[i + 1];
+                    const cpX = (curr.x + next.x) / 2;
+                    const currY = centerY + curr.y * maxAmplitude;
+                    const cpY = centerY + ((curr.y + next.y) / 2) * maxAmplitude;
+                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
                 }
 
-                canvasCtx.lineTo(canvas.width, centerY);
                 canvasCtx.stroke();
 
                 // Reset shadow
