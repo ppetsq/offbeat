@@ -396,7 +396,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             const sliceWidth = canvas.width / bufferLength;
             const centerY = canvas.height / 2;
-            const maxAmplitude = canvas.height / 2;
+            const maxAmplitude = canvas.height / 2 * 0.75;
 
             // Create gradient stroke (subtle green variation)
             const strokeGradient = canvasCtx.createLinearGradient(0, 0, canvas.width, 0);
