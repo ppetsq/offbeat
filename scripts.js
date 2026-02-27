@@ -2,6 +2,7 @@
 // EPISODE DATA
 // =====================================
 const episodes = [
+    { number: 31, date: '25.02.2026', url: 'https://vault.petsq.net/20260225_OFFBEAT_31.mp3', guest: null },
     { number: 30, date: '11.02.2026', url: 'https://vault.petsq.net/20260211_OFFBEAT_30.mp3', guest: null },
     { number: 29, date: '28.01.2026', url: 'https://vault.petsq.net/20260128_OFFBEAT_29.mp3', guest: null },
     { number: 28, date: '14.01.2026', url: 'https://vault.petsq.net/20260114_OFFBEAT_28.mp3', guest: 'litricity' },
