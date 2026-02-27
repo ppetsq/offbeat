@@ -80,45 +80,47 @@
 
                 <!-- Effects Section (collapsible) -->
                 <div class="effects-section collapsed" id="effectsSection">
-                    <div class="volume-container">
-                        <div class="knob-wrapper">
-                            <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume" aria-label="Volume Knob">
-                            <div class="knob-visual">
-                                <div class="knob-indicator"></div>
+                    <div class="effects-inner">
+                        <div class="volume-container">
+                            <div class="knob-wrapper">
+                                <input type="range" min="0" max="100" value="100" class="volume-slider" id="masterVolume" aria-label="Volume Knob">
+                                <div class="knob-visual">
+                                    <div class="knob-indicator"></div>
+                                </div>
                             </div>
+                            <button class="volume-label">volume</button>
                         </div>
-                        <button class="volume-label">volume</button>
-                    </div>
 
-                    <div class="filter-container">
-                        <div class="knob-wrapper">
-                            <input type="range" min="0" max="100" value="50" class="filter-slider" id="masterFilter" aria-label="Filter Knob">
-                            <div class="knob-visual">
-                                <div class="knob-indicator"></div>
+                        <div class="filter-container">
+                            <div class="knob-wrapper">
+                                <input type="range" min="0" max="100" value="50" class="filter-slider" id="masterFilter" aria-label="Filter Knob">
+                                <div class="knob-visual">
+                                    <div class="knob-indicator"></div>
+                                </div>
                             </div>
+                            <button class="filter-toggle">filter</button>
                         </div>
-                        <button class="filter-toggle">filter</button>
-                    </div>
-                    <div class="reverb-container">
-                        <div class="knob-wrapper">
-                            <input type="range" min="0" max="100" value="0" class="reverb-slider" id="masterReverb" aria-label="Reverb Knob">
-                            <div class="knob-visual">
-                                <div class="knob-indicator"></div>
+                        <div class="reverb-container">
+                            <div class="knob-wrapper">
+                                <input type="range" min="0" max="100" value="0" class="reverb-slider" id="masterReverb" aria-label="Reverb Knob">
+                                <div class="knob-visual">
+                                    <div class="knob-indicator"></div>
+                                </div>
                             </div>
+                            <button class="reverb-toggle">reverb</button>
                         </div>
-                        <button class="reverb-toggle">reverb</button>
-                    </div>
-                    <div class="autoplay-container active" id="autoplayContainer">
-                        <div class="toggle-switch" id="autoplayToggle">
-                            <div class="toggle-knob"></div>
+                        <div class="autoplay-container active" id="autoplayContainer">
+                            <div class="toggle-switch" id="autoplayToggle">
+                                <div class="toggle-knob"></div>
+                            </div>
+                            <span class="toggle-label">autoplay</span>
                         </div>
-                        <span class="toggle-label">autoplay</span>
-                    </div>
-                    <div class="shuffle-container" id="shuffleContainer">
-                        <div class="toggle-switch" id="shuffleToggle">
-                            <div class="toggle-knob"></div>
+                        <div class="shuffle-container" id="shuffleContainer">
+                            <div class="toggle-switch" id="shuffleToggle">
+                                <div class="toggle-knob"></div>
+                            </div>
+                            <span class="toggle-label">shuffle</span>
                         </div>
-                        <span class="toggle-label">shuffle</span>
                     </div>
                 </div>
             </div>
