@@ -2,9 +2,9 @@
 // EPISODE DATA
 // =====================================
 const episodes = [
-    { number: 31, date: '25.02.2026', url: 'https://vault.petsq.net/20260225_OFFBEAT_31.mp3', guest: null },
+    { number: 31, date: '25.02.2026', url: 'https://vault.petsq.net/20260225_OFFBEAT_31.mp3', guest: null, theme: '2016 special' },
     { number: 30, date: '11.02.2026', url: 'https://vault.petsq.net/20260211_OFFBEAT_30.mp3', guest: null },
-    { number: 29, date: '28.01.2026', url: 'https://vault.petsq.net/20260128_OFFBEAT_29.mp3', guest: null },
+    { number: 29, date: '28.01.2026', url: 'https://vault.petsq.net/20260128_OFFBEAT_29.mp3', guest: null, theme: 'IFFR special' },
     { number: 28, date: '14.01.2026', url: 'https://vault.petsq.net/20260114_OFFBEAT_28.mp3', guest: 'litricity' },
     { number: 27, date: '17.12.2025', url: 'https://vault.petsq.net/20251217_OFFBEAT_27.mp3', guest: null },
     { number: 26, date: '03.12.2025', url: 'https://vault.petsq.net/20251203_OFFBEAT_26_feat_percy_thrills.mp3', guest: 'percy thrills' },
@@ -57,6 +57,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const trackTitle = document.getElementById('trackTitle');
     const trackDate = document.getElementById('trackDate');
     const trackGuest = document.getElementById('trackGuest');
+    const trackTheme = document.getElementById('trackTheme');
     const currentTimeEl = document.getElementById('currentTime');
     const durationEl = document.getElementById('duration');
     const mainProgressBar = document.getElementById('mainProgressBar');
@@ -549,6 +550,8 @@ document.addEventListener("DOMContentLoaded", function() {
         trackDate.textContent = episode.date;
         trackGuest.textContent = episode.guest ? `feat. ${episode.guest}` : '';
         trackGuest.style.display = episode.guest ? 'inline' : 'none';
+        trackTheme.textContent = episode.theme ? episode.theme : '';
+        trackTheme.style.display = episode.theme ? 'inline' : 'none';
 
         // Update hash
         setHash(episode.number);
@@ -616,16 +619,21 @@ document.addEventListener("DOMContentLoaded", function() {
             date.className = 'episode-card-date';
             date.textContent = episode.date;
 
+            card.appendChild(title);
+            card.appendChild(date);
+
             if (episode.guest) {
                 const guest = document.createElement('div');
                 guest.className = 'episode-card-guest';
                 guest.textContent = `feat. ${episode.guest}`;
-                card.appendChild(title);
-                card.appendChild(date);
                 card.appendChild(guest);
-            } else {
-                card.appendChild(title);
-                card.appendChild(date);
+            }
+
+            if (episode.theme) {
+                const theme = document.createElement('div');
+                theme.className = 'episode-card-theme';
+                theme.textContent = episode.theme;
+                card.appendChild(theme);
             }
 
             card.addEventListener('click', () => {

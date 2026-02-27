@@ -21,6 +21,7 @@
     --center-marker: rgba(139, 157, 131, 0.5);
     --cable-color: #444444;
     --waveform-color: #16BE54;
+    --theme-color: #E8A838;
 }
 
 /* ==================
@@ -169,6 +170,12 @@ a:hover {
     font-style: italic;
     margin-left: 8px;
     color: var(--waveform-color);
+}
+
+.track-theme {
+    font-style: italic;
+    margin-left: 8px;
+    color: var(--theme-color);
 }
 
 /* Playback Controls Row */
@@ -691,6 +698,13 @@ a:hover {
     margin-top: 6px;
 }
 
+.episode-card-theme {
+    font-size: 0.8rem;
+    color: var(--theme-color);
+    font-style: italic;
+    margin-top: 6px;
+}
+
 /* ==================
    FOOTER STYLES
    ================== */
@@ -1012,7 +1026,8 @@ footer .copyright {
         font-size: 0.8rem;
     }
 
-    .episode-card-guest {
+    .episode-card-guest,
+    .episode-card-theme {
         font-size: 0.75rem;
     }
 
