@@ -92,18 +92,19 @@ a:hover {
 
 .hero-waveform {
     position: absolute;
-    bottom: -40px;
+    bottom: -50px;
     left: 0;
     right: 0;
     padding: 30px 0;
     z-index: 10;
     pointer-events: none;
+    transform: translateY(12px);
 }
 
 .hero-waveform canvas {
     display: block;
     width: 100%;
-    height: 120px;
+    height: 180px;
 }
 
 /* ==================
@@ -159,6 +160,11 @@ a:hover {
     font-weight: 600;
     color: var(--accent-color);
     margin-bottom: 6px;
+    transition: color 0.3s ease;
+}
+
+.track-title.playing {
+    color: #4eca7a;
 }
 
 .track-meta {
@@ -396,9 +402,10 @@ a:hover {
     margin-bottom: 20px;
 }
 
-/* Autoplay & Shuffle Toggles */
+/* Autoplay, Shuffle & Mirror Toggles */
 .autoplay-container,
-.shuffle-container {
+.shuffle-container,
+.mirror-container {
     width: 90px;
     height: 110px;
     display: flex;
@@ -432,12 +439,14 @@ a:hover {
 }
 
 .autoplay-container.active .toggle-switch,
-.shuffle-container.active .toggle-switch {
+.shuffle-container.active .toggle-switch,
+.mirror-container.active .toggle-switch {
     background-color: var(--accent-color);
 }
 
 .autoplay-container.active .toggle-knob,
-.shuffle-container.active .toggle-knob {
+.shuffle-container.active .toggle-knob,
+.mirror-container.active .toggle-knob {
     top: 2px;
 }
 
@@ -452,7 +461,8 @@ a:hover {
 }
 
 .autoplay-container.active .toggle-label,
-.shuffle-container.active .toggle-label {
+.shuffle-container.active .toggle-label,
+.mirror-container.active .toggle-label {
     color: var(--accent-color);
 }
 
@@ -978,12 +988,13 @@ footer .copyright {
     }
 
     .hero-waveform {
-        bottom: -40px;
+        bottom: -50px;
         padding: 20px 0;
+        transform: translateY(12px);
     }
 
     .hero-waveform canvas {
-        height: 70px;
+        height: 100px;
     }
 
     .main-player {
@@ -1101,7 +1112,7 @@ footer .copyright {
     }
 
     #waveformCanvas {
-        height: 40px;
+        height: 60px;
     }
 }
 

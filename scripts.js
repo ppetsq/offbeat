@@ -78,6 +78,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const autoplayContainer = document.getElementById('autoplayContainer');
     const shuffleToggle = document.getElementById('shuffleToggle');
     const shuffleContainer = document.getElementById('shuffleContainer');
+    const mirrorToggle = document.getElementById('mirrorToggle');
+    const mirrorContainer = document.getElementById('mirrorContainer');
 
     // =====================================
     // STATE VARIABLES
@@ -95,6 +97,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let targetSeekTime = null; // Target time to seek to after drag ends
     let autoplayEnabled = localStorage.getItem('autoplay') !== 'false'; // On by default
     let shuffleEnabled = localStorage.getItem('shuffle') === 'true'; // Off by default
+    let mirrorEnabled = localStorage.getItem('mirror') === 'true'; // Off by default
     let lastSavedTime = 0; // Throttle position saves
 
     // =====================================
@@ -383,40 +386,128 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         const computedStyle = getComputedStyle(document.documentElement);
-        const strokeColor = computedStyle.getPropertyValue('--waveform-color').trim();
-        const idleColor = computedStyle.getPropertyValue('--slider-bg').trim();
+        const strokeColor = computedStyle.getPropertyValue('--waveform-color').trim() || '#16BE54';
+        const fillColor = 'rgba(22, 190, 84, 0.15)';
+        const glowColor = 'rgba(22, 190, 84, 0.6)';
 
         if (!audioPlayer.paused && isAudioContextInitialized && useWebAudio && analyserNode) {
             visualizerAnimationId = requestAnimationFrame(drawVisualizer);
 
             analyserNode.getByteTimeDomainData(dataArray);
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            canvasCtx.lineWidth = 3;
-            canvasCtx.strokeStyle = strokeColor || '#16BE54';
-            canvasCtx.beginPath();
 
-            const sliceWidth = canvas.width * 1.0 / bufferLength;
-            let x = 0;
+            const sliceWidth = canvas.width / bufferLength;
             const centerY = canvas.height / 2;
             const maxAmplitude = canvas.height / 2;
 
-            for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0 - 1;
-                const y = centerY + v * maxAmplitude;
-                if (i === 0) {
-                    canvasCtx.moveTo(x, y);
-                } else {
-                    canvasCtx.lineTo(x, y);
+            if (mirrorEnabled) {
+                // MIRRORED MODE: Symmetric waveform with fills
+
+                // Pre-calculate amplitude values for reuse
+                const amplitudes = new Array(bufferLength);
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0 - 1;
+                    amplitudes[i] = Math.abs(v);
                 }
-                x += sliceWidth;
+
+                // Draw top half (filled area)
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(0, centerY);
+                let x = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const y = centerY - amplitudes[i] * maxAmplitude;
+                    canvasCtx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                canvasCtx.lineTo(canvas.width, centerY);
+                canvasCtx.closePath();
+                canvasCtx.fillStyle = fillColor;
+                canvasCtx.fill();
+
+                // Draw bottom half (mirrored, filled area)
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(0, centerY);
+                x = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const y = centerY + amplitudes[i] * maxAmplitude;
+                    canvasCtx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                canvasCtx.lineTo(canvas.width, centerY);
+                canvasCtx.closePath();
+                canvasCtx.fill();
+
+                // Draw stroke lines for definition with glow
+                canvasCtx.strokeStyle = strokeColor;
+                canvasCtx.lineWidth = 2;
+                canvasCtx.shadowColor = glowColor;
+                canvasCtx.shadowBlur = 12;
+                canvasCtx.shadowOffsetX = 0;
+                canvasCtx.shadowOffsetY = 0;
+
+                // Top stroke
+                canvasCtx.beginPath();
+                x = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const y = centerY - amplitudes[i] * maxAmplitude;
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+                    x += sliceWidth;
+                }
+                canvasCtx.stroke();
+
+                // Bottom stroke (mirrored)
+                canvasCtx.beginPath();
+                x = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const y = centerY + amplitudes[i] * maxAmplitude;
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+                    x += sliceWidth;
+                }
+                canvasCtx.stroke();
+
+                // Reset shadow for next frame
+                canvasCtx.shadowBlur = 0;
+
+            } else {
+                // STANDARD MODE: Single line waveform (original)
+                canvasCtx.lineWidth = 3;
+                canvasCtx.strokeStyle = strokeColor;
+                canvasCtx.shadowColor = glowColor;
+                canvasCtx.shadowBlur = 15;
+                canvasCtx.shadowOffsetX = 0;
+                canvasCtx.shadowOffsetY = 0;
+                canvasCtx.beginPath();
+
+                let x = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0 - 1;
+                    const y = centerY + v * maxAmplitude;
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+                    x += sliceWidth;
+                }
+
+                canvasCtx.lineTo(canvas.width, centerY);
+                canvasCtx.stroke();
+
+                // Reset shadow
+                canvasCtx.shadowBlur = 0;
             }
 
-            canvasCtx.lineTo(canvas.width, centerY);
-            canvasCtx.stroke();
         } else {
             visualizerAnimationId = null;
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            // Don't draw anything when paused - just clear the canvas
         }
     }
 
@@ -458,6 +549,14 @@ document.addEventListener("DOMContentLoaded", function() {
         shuffleContainer.classList.toggle('active', shuffleEnabled);
         localStorage.setItem('shuffle', shuffleEnabled.toString());
         console.log(`Shuffle ${shuffleEnabled ? 'enabled' : 'disabled'}`);
+    });
+
+    // Mirror waveform toggle (desktop only)
+    mirrorToggle.addEventListener('click', () => {
+        mirrorEnabled = !mirrorEnabled;
+        mirrorContainer.classList.toggle('active', mirrorEnabled);
+        localStorage.setItem('mirror', mirrorEnabled.toString());
+        console.log(`Mirror waveform ${mirrorEnabled ? 'enabled' : 'disabled'}`);
     });
 
     // =====================================
@@ -870,6 +969,7 @@ document.addEventListener("DOMContentLoaded", function() {
     audioPlayer.addEventListener('play', () => {
         resumeAudioContext();
         updatePlayPauseIcon();
+        trackTitle.classList.add('playing');
 
         // Initialize audio context if not already done
         if (!isAudioContextInitialized) {
@@ -889,9 +989,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
     audioPlayer.addEventListener('pause', () => {
         updatePlayPauseIcon();
+        trackTitle.classList.remove('playing');
     });
 
     audioPlayer.addEventListener('ended', () => {
+        trackTitle.classList.remove('playing');
         if (visualizerAnimationId && cancelAnimationFrame) {
             cancelAnimationFrame(visualizerAnimationId);
         }
@@ -1320,12 +1422,15 @@ document.addEventListener("DOMContentLoaded", function() {
             reverbActive = false;
         }
 
-        // Initialize autoplay and shuffle toggle states (desktop only)
+        // Initialize autoplay, shuffle, and mirror toggle states (desktop only)
         if (autoplayContainer) {
             autoplayContainer.classList.toggle('active', autoplayEnabled);
         }
         if (shuffleContainer) {
             shuffleContainer.classList.toggle('active', shuffleEnabled);
+        }
+        if (mirrorContainer) {
+            mirrorContainer.classList.toggle('active', mirrorEnabled);
         }
 
         // Hide Web Audio-dependent features on mobile
