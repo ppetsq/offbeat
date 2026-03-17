@@ -98,7 +98,8 @@ document.addEventListener("DOMContentLoaded", function() {
     let targetSeekTime = null; // Target time to seek to after drag ends
     let autoplayEnabled = localStorage.getItem('autoplay') !== 'false'; // On by default
     let shuffleEnabled = localStorage.getItem('shuffle') === 'true'; // Off by default
-    let mirrorEnabled = localStorage.getItem('mirror') === 'true'; // Off by default
+    // Viz mode: 'standard', 'mirror', or 'spectrum' (migrates old 'mirror' localStorage)
+    let vizMode = localStorage.getItem('vizMode') || (localStorage.getItem('mirror') === 'true' ? 'mirror' : 'standard');
     let lastSavedTime = 0; // Throttle position saves
 
     // =====================================
@@ -124,7 +125,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // =====================================
     // CANVAS VARIABLES
     // =====================================
-    let canvas, canvasCtx, dataArray, bufferLength;
+    let canvas, canvasCtx, dataArray, frequencyDataArray, bufferLength;
+    let spectrumSmoothed = null; // For temporal smoothing of spectrum values
 
     // =====================================
     // INITIALIZE CANVAS CONTEXT
@@ -306,8 +308,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // Configure Nodes
             analyserNode.fftSize = 2048;
+            analyserNode.smoothingTimeConstant = 0.8;
             bufferLength = analyserNode.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
+            frequencyDataArray = new Uint8Array(bufferLength);
 
             reverbLowcutNode.type = 'highpass';
             reverbLowcutNode.frequency.value = currentLowcutFreq;
@@ -392,10 +396,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!audioPlayer.paused && isAudioContextInitialized && useWebAudio && analyserNode) {
             visualizerAnimationId = requestAnimationFrame(drawVisualizer);
 
-            analyserNode.getByteTimeDomainData(dataArray);
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const sliceWidth = canvas.width / bufferLength;
             const centerY = canvas.height / 2;
             const maxAmplitude = canvas.height / 2 * 0.75;
 
@@ -405,114 +407,230 @@ document.addEventListener("DOMContentLoaded", function() {
             strokeGradient.addColorStop(0.5, '#1ed760');
             strokeGradient.addColorStop(1, '#12a448');
 
-            // Downsample for smoother curves (use every Nth point)
-            const step = 8;
-            const points = [];
-            for (let i = 0; i < bufferLength; i += step) {
-                const v = dataArray[i] / 128.0 - 1;
-                points.push({
-                    x: (i / bufferLength) * canvas.width,
-                    y: v
-                });
-            }
-            // Add final point
-            points.push({ x: canvas.width, y: 0 });
+            if (vizMode === 'spectrum') {
+                // SPECTRUM MODE: Frequency spectrum with log scaling
+                analyserNode.getByteFrequencyData(frequencyDataArray);
 
-            if (mirrorEnabled) {
-                // MIRRORED MODE: Symmetric waveform with fills
+                const numPoints = 128;
+                const sampleRate = audioContext.sampleRate;
+                const nyquist = sampleRate / 2;
+                const minFreq = 30;
+                const logMin = Math.log10(minFreq);
+                const logMax = Math.log10(nyquist);
 
-                // Draw top half (filled area with smooth curves)
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(0, centerY);
-                for (let i = 0; i < points.length - 1; i++) {
-                    const curr = points[i];
-                    const next = points[i + 1];
-                    const cpX = (curr.x + next.x) / 2;
-                    const currY = centerY - Math.abs(curr.y) * maxAmplitude;
-                    const cpY = centerY - Math.abs((curr.y + next.y) / 2) * maxAmplitude;
-                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
+                // Initialize smoothing array
+                if (!spectrumSmoothed || spectrumSmoothed.length !== numPoints) {
+                    spectrumSmoothed = new Float32Array(numPoints);
                 }
-                canvasCtx.lineTo(canvas.width, centerY);
+
+                const points = [];
+                for (let i = 0; i < numPoints; i++) {
+                    const t = i / (numPoints - 1);
+                    const x = t * canvas.width;
+                    // Warped log-scale: compress bass, expand mids/highs
+                    const freqT = Math.pow(t, 0.55);
+                    const logFreq = logMin + freqT * (logMax - logMin);
+                    const freq = Math.pow(10, logFreq);
+                    const binIndex = Math.round(freq / nyquist * (bufferLength - 1));
+                    const clampedBin = Math.min(binIndex, bufferLength - 1);
+
+                    // Wider bin averaging for low frequencies, narrower for highs
+                    const spread = Math.max(1, Math.round(4 * (1 - freqT)));
+                    let sum = 0;
+                    let count = 0;
+                    for (let b = Math.max(0, clampedBin - spread); b <= Math.min(bufferLength - 1, clampedBin + spread); b++) {
+                        sum += frequencyDataArray[b];
+                        count++;
+                    }
+                    const rawValue = (sum / count) / 255.0;
+
+                    // Soft-clip + gentle bass attenuation
+                    const bassAtten = 0.65 + 0.35 * freqT;
+                    const shaped = Math.pow(rawValue, 0.75) * bassAtten;
+
+                    // Temporal smoothing — faster attack, slower release
+                    const prev = spectrumSmoothed[i];
+                    spectrumSmoothed[i] = shaped > prev
+                        ? prev * 0.4 + shaped * 0.6   // attack
+                        : prev * 0.82 + shaped * 0.18; // release
+
+                    points.push({ x: x, y: spectrumSmoothed[i] });
+                }
+
+                // Vertical gradient fill (green at center, transparent at peaks)
+                const fillGrad = canvasCtx.createLinearGradient(0, centerY - maxAmplitude, 0, centerY);
+                fillGrad.addColorStop(0, 'rgba(22, 190, 84, 0.02)');
+                fillGrad.addColorStop(0.5, 'rgba(22, 190, 84, 0.12)');
+                fillGrad.addColorStop(1, 'rgba(22, 190, 84, 0.25)');
+
+                // Helper to draw a smooth spectrum curve
+                function drawSpectrumCurve(yFn) {
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(0, centerY);
+                    for (let i = 0; i < points.length - 1; i++) {
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        const cpX = (curr.x + next.x) / 2;
+                        canvasCtx.quadraticCurveTo(curr.x, yFn(curr, i), cpX, yFn({ y: (curr.y + next.y) / 2 }, i));
+                    }
+                    canvasCtx.lineTo(canvas.width, centerY);
+                }
+
+                // Top fill
+                drawSpectrumCurve((p) => centerY - p.y * maxAmplitude);
                 canvasCtx.closePath();
-                canvasCtx.fillStyle = fillColor;
+                canvasCtx.fillStyle = fillGrad;
                 canvasCtx.fill();
 
-                // Draw bottom half (mirrored, filled area)
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(0, centerY);
-                for (let i = 0; i < points.length - 1; i++) {
-                    const curr = points[i];
-                    const next = points[i + 1];
-                    const cpX = (curr.x + next.x) / 2;
-                    const currY = centerY + Math.abs(curr.y) * maxAmplitude;
-                    const cpY = centerY + Math.abs((curr.y + next.y) / 2) * maxAmplitude;
-                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
-                }
-                canvasCtx.lineTo(canvas.width, centerY);
+                // Bottom fill (mirrored gradient)
+                const fillGradBottom = canvasCtx.createLinearGradient(0, centerY, 0, centerY + maxAmplitude);
+                fillGradBottom.addColorStop(0, 'rgba(22, 190, 84, 0.25)');
+                fillGradBottom.addColorStop(0.5, 'rgba(22, 190, 84, 0.12)');
+                fillGradBottom.addColorStop(1, 'rgba(22, 190, 84, 0.02)');
+
+                drawSpectrumCurve((p) => centerY + p.y * maxAmplitude);
                 canvasCtx.closePath();
+                canvasCtx.fillStyle = fillGradBottom;
                 canvasCtx.fill();
 
-                // Draw stroke lines with gradient and glow
+                // Stroke lines with glow
                 canvasCtx.strokeStyle = strokeGradient;
                 canvasCtx.lineWidth = 2;
                 canvasCtx.shadowColor = glowColor;
-                canvasCtx.shadowBlur = 12;
+                canvasCtx.shadowBlur = 14;
                 canvasCtx.shadowOffsetX = 0;
                 canvasCtx.shadowOffsetY = 0;
 
                 // Top stroke
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(0, centerY);
-                for (let i = 0; i < points.length - 1; i++) {
-                    const curr = points[i];
-                    const next = points[i + 1];
-                    const cpX = (curr.x + next.x) / 2;
-                    const currY = centerY - Math.abs(curr.y) * maxAmplitude;
-                    const cpY = centerY - Math.abs((curr.y + next.y) / 2) * maxAmplitude;
-                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
-                }
+                drawSpectrumCurve((p) => centerY - p.y * maxAmplitude);
                 canvasCtx.stroke();
 
-                // Bottom stroke (mirrored)
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(0, centerY);
-                for (let i = 0; i < points.length - 1; i++) {
-                    const curr = points[i];
-                    const next = points[i + 1];
-                    const cpX = (curr.x + next.x) / 2;
-                    const currY = centerY + Math.abs(curr.y) * maxAmplitude;
-                    const cpY = centerY + Math.abs((curr.y + next.y) / 2) * maxAmplitude;
-                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
-                }
+                // Bottom stroke
+                drawSpectrumCurve((p) => centerY + p.y * maxAmplitude);
                 canvasCtx.stroke();
 
-                // Reset shadow
+                // Inner glow line (brighter, thinner, less blur)
+                canvasCtx.strokeStyle = 'rgba(30, 215, 96, 0.5)';
+                canvasCtx.lineWidth = 1;
+                canvasCtx.shadowBlur = 6;
+                drawSpectrumCurve((p) => centerY - p.y * maxAmplitude * 0.6);
+                canvasCtx.stroke();
+                drawSpectrumCurve((p) => centerY + p.y * maxAmplitude * 0.6);
+                canvasCtx.stroke();
+
                 canvasCtx.shadowBlur = 0;
 
             } else {
-                // STANDARD MODE: Single line waveform with smooth curves
-                canvasCtx.lineWidth = 3;
-                canvasCtx.strokeStyle = strokeGradient;
-                canvasCtx.shadowColor = glowColor;
-                canvasCtx.shadowBlur = 15;
-                canvasCtx.shadowOffsetX = 0;
-                canvasCtx.shadowOffsetY = 0;
-                canvasCtx.beginPath();
+                // STANDARD and MIRROR modes use time-domain data
+                analyserNode.getByteTimeDomainData(dataArray);
 
-                canvasCtx.moveTo(0, centerY + points[0].y * maxAmplitude);
-                for (let i = 0; i < points.length - 1; i++) {
-                    const curr = points[i];
-                    const next = points[i + 1];
-                    const cpX = (curr.x + next.x) / 2;
-                    const currY = centerY + curr.y * maxAmplitude;
-                    const cpY = centerY + ((curr.y + next.y) / 2) * maxAmplitude;
-                    canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
+                const step = 8;
+                const points = [];
+                for (let i = 0; i < bufferLength; i += step) {
+                    const v = dataArray[i] / 128.0 - 1;
+                    points.push({
+                        x: (i / bufferLength) * canvas.width,
+                        y: v
+                    });
                 }
+                points.push({ x: canvas.width, y: 0 });
 
-                canvasCtx.stroke();
+                if (vizMode === 'mirror') {
+                    // MIRRORED MODE: Symmetric waveform with fills
 
-                // Reset shadow
-                canvasCtx.shadowBlur = 0;
+                    // Draw top half (filled area with smooth curves)
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(0, centerY);
+                    for (let i = 0; i < points.length - 1; i++) {
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        const cpX = (curr.x + next.x) / 2;
+                        const currY = centerY - Math.abs(curr.y) * maxAmplitude;
+                        const cpY = centerY - Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                        canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
+                    }
+                    canvasCtx.lineTo(canvas.width, centerY);
+                    canvasCtx.closePath();
+                    canvasCtx.fillStyle = fillColor;
+                    canvasCtx.fill();
+
+                    // Draw bottom half (mirrored, filled area)
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(0, centerY);
+                    for (let i = 0; i < points.length - 1; i++) {
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        const cpX = (curr.x + next.x) / 2;
+                        const currY = centerY + Math.abs(curr.y) * maxAmplitude;
+                        const cpY = centerY + Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                        canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
+                    }
+                    canvasCtx.lineTo(canvas.width, centerY);
+                    canvasCtx.closePath();
+                    canvasCtx.fill();
+
+                    // Draw stroke lines with gradient and glow
+                    canvasCtx.strokeStyle = strokeGradient;
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.shadowColor = glowColor;
+                    canvasCtx.shadowBlur = 12;
+                    canvasCtx.shadowOffsetX = 0;
+                    canvasCtx.shadowOffsetY = 0;
+
+                    // Top stroke
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(0, centerY);
+                    for (let i = 0; i < points.length - 1; i++) {
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        const cpX = (curr.x + next.x) / 2;
+                        const currY = centerY - Math.abs(curr.y) * maxAmplitude;
+                        const cpY = centerY - Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                        canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
+                    }
+                    canvasCtx.stroke();
+
+                    // Bottom stroke (mirrored)
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(0, centerY);
+                    for (let i = 0; i < points.length - 1; i++) {
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        const cpX = (curr.x + next.x) / 2;
+                        const currY = centerY + Math.abs(curr.y) * maxAmplitude;
+                        const cpY = centerY + Math.abs((curr.y + next.y) / 2) * maxAmplitude;
+                        canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
+                    }
+                    canvasCtx.stroke();
+
+                    // Reset shadow
+                    canvasCtx.shadowBlur = 0;
+
+                } else {
+                    // STANDARD MODE: Single line waveform with smooth curves
+                    canvasCtx.lineWidth = 3;
+                    canvasCtx.strokeStyle = strokeGradient;
+                    canvasCtx.shadowColor = glowColor;
+                    canvasCtx.shadowBlur = 15;
+                    canvasCtx.shadowOffsetX = 0;
+                    canvasCtx.shadowOffsetY = 0;
+                    canvasCtx.beginPath();
+
+                    canvasCtx.moveTo(0, centerY + points[0].y * maxAmplitude);
+                    for (let i = 0; i < points.length - 1; i++) {
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        const cpX = (curr.x + next.x) / 2;
+                        const currY = centerY + curr.y * maxAmplitude;
+                        const cpY = centerY + ((curr.y + next.y) / 2) * maxAmplitude;
+                        canvasCtx.quadraticCurveTo(curr.x, currY, cpX, cpY);
+                    }
+
+                    canvasCtx.stroke();
+
+                    // Reset shadow
+                    canvasCtx.shadowBlur = 0;
+                }
             }
 
         } else {
@@ -561,12 +679,26 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log(`Shuffle ${shuffleEnabled ? 'enabled' : 'disabled'}`);
     });
 
-    // Mirror waveform toggle (desktop only)
+    // Viz mode toggle (desktop only): standard → mirror → spectrum
+    const vizModes = ['standard', 'mirror', 'spectrum'];
+    const vizModeLabel = mirrorContainer.querySelector('.toggle-label');
+
+    function updateVizModeUI() {
+        mirrorContainer.classList.remove('viz-mirror', 'viz-spectrum');
+        if (vizMode === 'mirror') mirrorContainer.classList.add('viz-mirror');
+        if (vizMode === 'spectrum') mirrorContainer.classList.add('viz-spectrum');
+        if (vizModeLabel) vizModeLabel.textContent = vizMode === 'standard' ? 'waveform' : vizMode;
+    }
+    updateVizModeUI();
+
     mirrorToggle.addEventListener('click', () => {
-        mirrorEnabled = !mirrorEnabled;
-        mirrorContainer.classList.toggle('active', mirrorEnabled);
-        localStorage.setItem('mirror', mirrorEnabled.toString());
-        console.log(`Mirror waveform ${mirrorEnabled ? 'enabled' : 'disabled'}`);
+        const currentIndex = vizModes.indexOf(vizMode);
+        vizMode = vizModes[(currentIndex + 1) % vizModes.length];
+        updateVizModeUI();
+        localStorage.setItem('vizMode', vizMode);
+        // Reset spectrum smoothing when switching away
+        if (vizMode !== 'spectrum') spectrumSmoothed = null;
+        console.log(`Viz mode: ${vizMode}`);
     });
 
     // =====================================
@@ -1440,7 +1572,7 @@ document.addEventListener("DOMContentLoaded", function() {
             shuffleContainer.classList.toggle('active', shuffleEnabled);
         }
         if (mirrorContainer) {
-            mirrorContainer.classList.toggle('active', mirrorEnabled);
+            updateVizModeUI();
         }
 
         // Hide Web Audio-dependent features on mobile
@@ -1468,7 +1600,7 @@ document.addEventListener("DOMContentLoaded", function() {
         enableBackgroundPlayback();
         setupMediaSession();
 
-        // Render episode grid
+        // Render episode list
         renderEpisodeGrid();
 
         // Initialize from hash

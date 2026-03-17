@@ -441,14 +441,27 @@ a:hover {
 }
 
 .autoplay-container.active .toggle-switch,
-.shuffle-container.active .toggle-switch,
-.mirror-container.active .toggle-switch {
+.shuffle-container.active .toggle-switch {
     background-color: var(--accent-color);
 }
 
 .autoplay-container.active .toggle-knob,
-.shuffle-container.active .toggle-knob,
-.mirror-container.active .toggle-knob {
+.shuffle-container.active .toggle-knob {
+    top: 2px;
+}
+
+/* 3-way toggle for viz mode */
+.mirror-container.viz-mirror .toggle-switch {
+    background-color: var(--accent-color);
+}
+.mirror-container.viz-mirror .toggle-knob {
+    top: 11px;
+}
+
+.mirror-container.viz-spectrum .toggle-switch {
+    background-color: var(--waveform-color);
+}
+.mirror-container.viz-spectrum .toggle-knob {
     top: 2px;
 }
 
@@ -463,9 +476,16 @@ a:hover {
 }
 
 .autoplay-container.active .toggle-label,
-.shuffle-container.active .toggle-label,
-.mirror-container.active .toggle-label {
+.shuffle-container.active .toggle-label {
     color: var(--accent-color);
+}
+
+.mirror-container.viz-mirror .toggle-label {
+    color: var(--accent-color);
+}
+
+.mirror-container.viz-spectrum .toggle-label {
+    color: var(--waveform-color);
 }
 
 .dj-toggle-btn {
