@@ -2,6 +2,7 @@
 // EPISODE DATA
 // =====================================
 const episodes = [
+    { number: 35, date: '22.04.2026', url: 'https://vault.petsq.net/20260422_OFFBEAT_35_rewire_live.mp3', guest: null, theme: 'Rewire 2026 live' },
     { number: 34, date: '08.04.2026', url: 'https://vault.petsq.net/20260408_OFFBEAT_34.mp3', guest: null },
     { number: 33, date: '25.03.2026', url: 'https://vault.petsq.net/20260325_OFFBEAT_33.mp3', guest: null },
     { number: 32, date: '11.03.2026', url: 'https://vault.petsq.net/20260311_OFFBEAT_32.mp3', guest: null },
